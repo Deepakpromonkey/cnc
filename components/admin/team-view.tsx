@@ -67,9 +67,32 @@ export function TeamView({ people, cs, rules, praise, visible, lateCount, initia
         </>} />
       <Stats items={[[people.length, "People scored"], [avg, "Average score", "gold"], [people.filter((x) => x.flags.some((fl) => fl.pts > 0)).length, "Praised"], [people.filter((x) => x.flags.some((fl) => fl.pts < 0)).length, "Red flagged", "hot"], [lateCount, "Late tasks", "hot"]]} />
       <div className="bar"><Chips value={f} onChange={setF} items={[["All", people.length], ...depts.map((d) => [d, people.filter((x) => x.dept === d).length] as [string, number]), ["Flagged", people.filter((x) => x.flags.length).length]]} /></div>
+      {rows.length ? (() => {
+        // Who has room this week: open tasks per person, with what's due in the next 7 days and what's already late.
+        const d = new Date(); const todayKey = new Date(d.getTime() + (d.getTimezoneOffset() + 330) * 60000).toISOString().slice(0, 10);
+        const weekEnd = new Date(new Date(todayKey + "T00:00:00Z").getTime() + 7 * 864e5).toISOString().slice(0, 10);
+        const load = rows.map((x) => ({ p: x, open: x.open.length, week: x.open.filter((t) => t.dueKey >= todayKey && t.dueKey < weekEnd).length, late: x.open.filter((t) => t.isLate).length })).sort((a, b) => b.open - a.open || b.late - a.late);
+        const max = Math.max(1, ...load.map((l) => l.open));
+        const free = load.filter((l) => l.open <= 1);
+        return (
+          <section className="card">
+            <div className="card-h"><div><div className="eyebrow">Workload · next 7 days</div><h2>Who has <em>room.</em></h2></div>
+              <span className="muted small">{free.length ? `${free.map((l) => l.p.name.split(" ")[0]).join(", ")} ${free.length === 1 ? "is" : "are"} lightest — assign there first.` : "Everyone has 2+ tasks on their desk."}</span></div>
+            <div className="wl">
+              {load.map((l) => (
+                <button key={l.p.id} type="button" className={l.p.id === p?.id ? "on" : ""} onClick={() => setSel(l.p.id)} title={`${l.p.name}: ${l.open} open`}>
+                  <b>{l.p.name}</b>
+                  <span className="bar"><i className={l.open ? "" : "free"} style={{ width: `${Math.round((l.open / max) * 100)}%` }} /></span>
+                  <small><span>{l.open} open</span><span>· {l.week} due this week</span>{l.late ? <span className="hot">· {l.late} late</span> : null}</small>
+                </button>
+              ))}
+            </div>
+          </section>
+        );
+      })() : null}
       <div className="split">
         <div className="scroll">
-          <table className="tbl tight"><thead><tr><th>#</th><th>Person</th><th className="r">Tasks</th><th className="r">On time</th><th className="r">Review pass</th><th className="r">CS rating</th><th className="r">EOD</th><th className="r">Attendance</th><th>Flags</th><th className="r">Score</th></tr></thead>
+          <table className="tbl fit"><thead><tr><th>#</th><th>Person</th><th className="r">Tasks</th><th className="r">On time</th><th className="r">Review pass</th><th className="r">CS rating</th><th className="r">EOD</th><th className="r">Attendance</th><th>Flags</th><th className="r">Score</th></tr></thead>
             <tbody>{rows.map((x) => (
               <tr key={x.id} className={x.id === p?.id ? "sel" : ""} onClick={() => setSel(x.id)}>
                 <td className="big" style={{ color: "var(--faint)" }}>{people.indexOf(x) + 1}</td>
@@ -107,7 +130,7 @@ export function TeamView({ people, cs, rules, praise, visible, lateCount, initia
       </div>
       <section className="card">
         <div className="card-h"><div><div className="eyebrow">Client servicing team</div><h2>Who&apos;s <em>holding</em> the cups.</h2></div><button className="btn" onClick={() => open(<FlagForm cs />)}>Flag a CS</button></div>
-        <div className="scroll"><table className="tbl tight"><thead><tr><th>Person</th><th>Brands</th><th className="r">Open tasks</th><th className="r">Late</th><th className="r">Unanswered requests</th><th className="r">Avg client rating</th><th>Flags</th><th className="r">Score</th></tr></thead>
+        <div className="scroll"><table className="tbl fit"><thead><tr><th>Person</th><th>Brands</th><th className="r">Open tasks</th><th className="r">Late</th><th className="r">Unanswered requests</th><th className="r">Avg client rating</th><th>Flags</th><th className="r">Score</th></tr></thead>
           <tbody>{cs.map((c) => (
             <tr key={c.id} style={{ cursor: "default" }}>
               <td className="n">{c.name}<small>{c.desig}</small></td>

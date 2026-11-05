@@ -113,10 +113,10 @@ export function MyTasksView({ tasks, eod, initialTask }: { tasks: TaskVM[]; eod:
       <Stats items={[[tasks.filter(filters.All).length, "Open"], [tasks.filter(filters.Late).length, "Late", "hot"], [tasks.filter(filters["Due today"]).length, "Due today"], [tasks.filter((t) => t.status.isReview).length, "In review"], [tasks.filter(filters.Done).length, "Done · 30 days", "gold"]]} />
       <div className="bar"><Chips value={f} onChange={setF} items={Object.keys(filters).map((k) => [k, tasks.filter(filters[k]).length])} /><Search value={q} onChange={setQ} placeholder="Search task, brand" /></div>
       {mode === "board" ? (
-        <div className="board">{L.statuses.filter((s) => (f === "Done" ? s.isDone : !s.isDone)).map((s) => {
+        <div className="board" style={{ "--cols": Math.max(1, L.statuses.filter((s) => (f === "Done" ? s.isDone : !s.isDone)).length) } as React.CSSProperties}>{L.statuses.filter((s) => (f === "Done" ? s.isDone : !s.isDone)).map((s) => {
           const ts = rows.filter((t) => t.status.id === s.id);
-          return <div key={s.id} className={`col${s.isRejected ? " hot" : s.isDone ? " done" : ""}`}><h3>{s.name}<b>{ts.length}</b></h3>
-            {ts.length ? ts.map((t) => <TaskCard key={t.id} t={t} onOpen={() => openTask(t)} />) : <div className="empty" style={{ padding: 14 }}>—</div>}</div>;
+          return <div key={s.id} className={`col${s.isRejected ? " hot" : s.isDone ? " done" : ""}`}><h3><span>{s.name}</span><b>{ts.length}</b></h3>
+            <div className="cards">{ts.length ? ts.map((t) => <TaskCard key={t.id} t={t} onOpen={() => openTask(t)} />) : <div className="empty" style={{ padding: 14 }}>—</div>}</div></div>;
         })}</div>
       ) : (
         <div className="scroll"><table className="tbl"><thead><tr><th>Task</th><th>Brand · Project</th><th>CS</th><th>Due (IST)</th><th>Status</th><th>Shared</th></tr></thead>

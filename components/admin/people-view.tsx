@@ -50,24 +50,47 @@ function UserDrawer({ u }: { u: UserVM }) {
   );
 }
 
-export function PeopleView({ users, deptCount, groups, superAdmin }: { users: UserVM[]; deptCount: number; groups: string[]; superAdmin: boolean }) {
+type SortKey = "name" | "role" | "dept" | "group";
+const ROLE_ORDER: Record<string, number> = { admin: 0, group_admin: 1, cs: 2, employee: 3, client: 4 };
+
+/** Download the visible rows as a CSV (name, role, group, department, designation, mobile, email, login, status). */
+function exportCsv(rows: UserVM[]) {
+  const esc = (v: string) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const head = ["Name", "Role", "Group", "Reports to", "Department / Brand", "Designation", "Mobile", "Email", "Login ID", "Status", "Last sign-in"];
+  const body = rows.map((u) => [u.name, ROLE_LABEL[u.role], u.group, u.reportsTo, u.dept, u.desig, u.mobile, u.email, u.login, u.status, u.last].map(esc).join(","));
+  const blob = new Blob([[head.map(esc).join(","), ...body].join("\n")], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `cnc-users-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+export function PeopleView({ users, deptCount, groups, superAdmin, initial }: { users: UserVM[]; deptCount: number; groups: string[]; superAdmin: boolean; initial?: string | null }) {
   const { open } = useUi();
   const [f, setF] = useState("All");
   const [grp, setGrp] = useState("All groups");
   const [q, setQ] = useState("");
-  const openUser = useLiveDrawer(users, (u) => <UserDrawer u={u} />, "user");
+  const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "role", dir: 1 });
+  const openUser = useLiveDrawer(users, (u) => <UserDrawer u={u} />, "user", initial);
   const map: Record<string, string> = { Admins: "admin", "Group admins": "group_admin", "Client servicing": "cs", Employees: "employee", Clients: "client" };
-  const rows = useMemo(() => users.filter((u) => {
-    if (f === "Inactive") { if (u.status !== "inactive") return false; }
-    else if (f === "Unassigned") { if (!u.unassigned) return false; }
-    else if (!superAdmin && f !== "All" && u.unassigned) return false;
-    else if (map[f] && u.role !== map[f]) return false;
-    if (grp !== "All groups" && (grp === "No group" ? !!u.group || u.role === "client" : u.group !== grp)) return false;
-    const s = q.toLowerCase();
-    return !s || `${u.name} ${u.email} ${u.desig} ${u.dept} ${u.group} ${u.reportsTo}`.toLowerCase().includes(s);
+  const rows = useMemo(() => {
+    const list = users.filter((u) => {
+      if (f === "Inactive") { if (u.status !== "inactive") return false; }
+      else if (f === "Unassigned") { if (!u.unassigned) return false; }
+      else if (!superAdmin && f !== "All" && u.unassigned) return false;
+      else if (map[f] && u.role !== map[f]) return false;
+      if (grp !== "All groups" && (grp === "No group" ? !!u.group || u.role === "client" : u.group !== grp)) return false;
+      const s = q.toLowerCase();
+      return !s || `${u.name} ${u.email} ${u.desig} ${u.dept} ${u.group} ${u.reportsTo} ${u.login}`.toLowerCase().includes(s);
+    });
+    const key = (u: UserVM) => sort.key === "name" ? u.name.toLowerCase() : sort.key === "dept" ? `${u.dept} ${u.name}`.toLowerCase() : sort.key === "group" ? `${u.group || "zzz"} ${u.name}`.toLowerCase() : `${ROLE_ORDER[u.role] ?? 9} ${u.name.toLowerCase()}`;
+    return list.sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0) * sort.dir);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [users, f, q, grp, superAdmin]);
+  }, [users, f, q, grp, superAdmin, sort]);
   const count = (r: string) => users.filter((u) => u.role === r).length;
+  const Th = ({ k, children }: { k: SortKey; children: React.ReactNode }) => (
+    <th className={`sortable${sort.key === k ? " on" : ""}`} onClick={() => setSort((s) => ({ key: k, dir: s.key === k ? (s.dir === 1 ? -1 : 1) : 1 }))}>
+      {children}{sort.key === k ? <span className="arrow">{sort.dir === 1 ? "↑" : "↓"}</span> : null}
+    </th>
+  );
   return (
     <section className="view on">
       {superAdmin
@@ -82,16 +105,19 @@ export function PeopleView({ users, deptCount, groups, superAdmin }: { users: Us
         <Chips value={f} onChange={setF} items={superAdmin
           ? [["All", users.length], ["Admins", count("admin")], ["Group admins", count("group_admin")], ["Client servicing", count("cs")], ["Employees", count("employee")], ["Clients", count("client")], ["Inactive", users.filter((u) => u.status === "inactive").length]]
           : [["All", users.length], ["Client servicing", users.filter((u) => u.role === "cs" && !u.unassigned).length], ["Employees", users.filter((u) => u.role === "employee" && !u.unassigned).length], ["Unassigned", users.filter((u) => u.unassigned).length], ["Inactive", users.filter((u) => u.status === "inactive").length]]} />
-        {superAdmin && groups.length ? <select value={grp} onChange={(e) => setGrp(e.target.value)} style={{ width: "auto" }}>{["All groups", ...groups, "No group"].map((g) => <option key={g}>{g}</option>)}</select> : null}
-        <Search value={q} onChange={setQ} placeholder="Search name, email, designation" />
+        {superAdmin && groups.length ? <select className="flt" value={grp} onChange={(e) => setGrp(e.target.value)} aria-label="Filter by group">{["All groups", ...groups, "No group"].map((g) => <option key={g}>{g}</option>)}</select> : null}
+        <Search value={q} onChange={setQ} placeholder="Search name, email, login, designation" />
+        <button type="button" className="btn" style={{ padding: "7px 12px", fontSize: 12 }} onClick={() => exportCsv(rows)} title="Download the rows shown as a CSV">Export CSV · {rows.length}</button>
       </div>
-      <div className="scroll"><table className="tbl tight"><thead><tr><th>User</th><th>Role</th><th>Group · reports to</th><th>Department</th><th>Designation</th><th>Mobile · WhatsApp</th><th>Login ID</th><th>Status</th></tr></thead>
+      <div className="scroll"><table className="tbl fit people"><thead><tr><Th k="name">User</Th><Th k="role">Role</Th>{superAdmin ? <Th k="group">Group · reports to</Th> : null}<Th k="dept">Department · designation</Th><th>Contact</th><th className="hide-lg">Last sign-in</th><th>Status</th></tr></thead>
         <tbody>{rows.map((u) => (
           <tr key={u.id} onClick={() => openUser(u)}>
-            <td className="n"><span className="bar" style={{ gap: 10, flexWrap: "nowrap" }}><span className={`ava ${roleClass(u.role)}`} style={{ overflow: "hidden" }}>{u.photo ? <img src={u.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : ini(u.name)}</span><span>{u.name}<small>{u.email}</small></span></span></td>
-            <td><span className="tag">{ROLE_LABEL[u.role]}</span></td>
-            <td style={{ color: "var(--muted)" }}>{u.role === "client" ? "—" : u.unassigned ? <Pill cls="dim">Unassigned</Pill> : <>{u.group || "—"}{u.reportsTo ? <small>→ {u.reportsTo}</small> : null}</>}</td>
-            <td style={{ color: "var(--muted)" }}>{u.dept}</td><td>{u.desig}</td><td style={{ color: "var(--muted)" }}>{u.mobile}</td><td style={{ color: "var(--muted)" }}>{u.login}</td>
+            <td className="n"><span className="bar" style={{ gap: 10, flexWrap: "nowrap" }}><span className={`ava ${roleClass(u.role)}`} style={{ overflow: "hidden" }}>{u.photo ? <img src={u.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : ini(u.name)}</span><span style={{ minWidth: 0 }}>{u.name}<small>{u.email}</small><small style={{ color: "var(--faint)" }}>login · {u.login}</small></span></span></td>
+            <td><span className="tag" style={{ whiteSpace: "nowrap" }}>{ROLE_LABEL[u.role]}</span></td>
+            {superAdmin ? <td style={{ color: "var(--muted)" }}>{u.role === "client" ? "—" : u.unassigned ? <Pill cls="dim">Unassigned</Pill> : <>{u.group || "—"}{u.reportsTo ? <span className="sub">→ {u.reportsTo}</span> : null}</>}</td> : null}
+            <td>{u.dept}{u.desig && u.desig !== u.dept ? <span className="sub">{u.desig}</span> : null}</td>
+            <td className="nowrap" style={{ color: "var(--muted)" }}>{u.mobile || "—"}</td>
+            <td className="nowrap hide-lg" style={{ color: u.last === "invite pending" ? "var(--gold)" : "var(--muted)", fontSize: 12 }}>{u.last}</td>
             <td><Pill cls={u.status === "active" ? "gold" : "dim"}>{u.status === "active" ? "Active" : "Inactive"}</Pill></td>
           </tr>
         ))}</tbody></table>

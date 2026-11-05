@@ -27,7 +27,7 @@ function Actions({ primary, extra }: { primary: string; extra?: React.ReactNode 
 }
 
 // ---------------- task ----------------
-export function TaskForm({ task, brandId, projectId, title, requestId, link }: { task?: TaskVM; brandId?: string; projectId?: string; title?: string; requestId?: string; link?: string }) {
+export function TaskForm({ task, brandId, projectId, title, requestId, link, duplicate }: { task?: TaskVM; brandId?: string; projectId?: string; title?: string; requestId?: string; link?: string; /** Prefill from `task` but create a new one. */ duplicate?: boolean }) {
   const L = useLookups();
   const [brand, setBrand] = useState(task?.brandId ?? brandId ?? L.brands[0]?.id ?? "");
   const [proj, setProj] = useState(task?.projectId ?? projectId ?? "");
@@ -35,10 +35,11 @@ export function TaskForm({ task, brandId, projectId, title, requestId, link }: {
   const brandCs = L.brands.find((b) => b.id === brand)?.cs[0];
   return (
     <ActionForm action={saveTask} className="dform">
-      <div className="eyebrow">{task ? `Edit task · ${task.code}` : requestId ? "Convert to task" : "New task"}</div>
-      <h2>{task ? task.name : <>Put something {em("on the boil.")}</>}</h2>
+      <div className="eyebrow">{duplicate ? `Duplicate of ${task?.code}` : task ? `Edit task · ${task.code}` : requestId ? "Convert to task" : "New task"}</div>
+      <h2>{duplicate ? <>Same brief, {em("new task.")}</> : task ? task.name : <>Put something {em("on the boil.")}</>}</h2>
+      {duplicate ? <p className="muted small" style={{ margin: 0 }}>Everything is copied from {task?.code}. Change the name and the deadline, then create.</p> : null}
       <div className="form">
-        {task ? <input type="hidden" name="id" value={task.id} /> : null}
+        {task && !duplicate ? <input type="hidden" name="id" value={task.id} /> : null}
         {requestId ? <input type="hidden" name="requestId" value={requestId} /> : null}
         <div className="two">
           <F label="Brand"><select name="brandId" value={brand} onChange={(e) => { setBrand(e.target.value); setProj(""); }}>{L.brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select></F>
@@ -50,7 +51,7 @@ export function TaskForm({ task, brandId, projectId, title, requestId, link }: {
           <F label="Task title (type)"><Sel name="titleId" options={L.titles.map((t) => [t.id, t.name])} value={task?.titleId} required /></F>
           <F label="Servicing"><Sel name="servicingTypeId" options={L.servicing.map((t) => [t.id, t.name])} value={task?.servId} placeholder="—" /></F>
         </div>
-        <F label="Task name"><input name="name" defaultValue={task?.name ?? title ?? ""} placeholder="What exactly is being made" required /></F>
+        <F label="Task name"><input name="name" defaultValue={duplicate && task ? `${task.name} · copy` : task?.name ?? title ?? ""} placeholder="What exactly is being made" required /></F>
         <F label="Description"><textarea name="description" defaultValue={task?.desc} placeholder="What good looks like, sizes, references" /></F>
         <Sec>People</Sec>
         <F label="Assignees (multi) · each with their department">
@@ -67,7 +68,7 @@ export function TaskForm({ task, brandId, projectId, title, requestId, link }: {
         </div>
         <div className="two">
           <F label="Deadline time"><input type="time" name="deadlineTime" defaultValue={task?.dueTime ?? "18:00"} required /></F>
-          <F label="Status"><Sel name="statusId" options={L.statuses.map((s) => [s.id, s.name])} value={task?.status.id ?? L.statuses[0]?.id} /></F>
+          <F label="Status"><Sel name="statusId" options={L.statuses.map((s) => [s.id, s.name])} value={duplicate ? L.statuses[0]?.id : task?.status.id ?? L.statuses[0]?.id} /></F>
         </div>
         <Sec>Brief & references</Sec>
         <UploadMany name="files" label="Reference images" hint="Screenshots, mood boards, client samples · JPG, PNG, up to 10 MB each" linkName="link" />
@@ -75,7 +76,7 @@ export function TaskForm({ task, brandId, projectId, title, requestId, link }: {
         <Switch name="shareWithClient" label="Share with client on portal" sub="They see status and can approve the deliverable" defaultOn={task?.share ?? true} />
         <Switch name="sarthiNudge" label="Sarthi nudges when late" sub="Every 2 h, copies CS" defaultOn={task?.nudge ?? true} />
       </div>
-      <Actions primary={task ? "Save" : requestId ? "Create task from request" : "Create task"} />
+      <Actions primary={duplicate ? "Create the copy" : task ? "Save" : requestId ? "Create task from request" : "Create task"} />
     </ActionForm>
   );
 }

@@ -98,3 +98,15 @@ export async function voidInvoice(fd: FormData): Promise<Result> {
     return ok("Voided · stays on the books as void");
   });
 }
+
+/** "Remind all overdue": one Sarthi reminder per overdue invoice, same as the per-invoice button. */
+export async function remindAllOverdue(): Promise<Result> {
+  return guard(async () => {
+    await actor(["admin"]);
+    const rows = await db.invoice.findMany({ where: { status: "overdue" }, select: { id: true } });
+    if (!rows.length) return fail("Nothing is overdue right now");
+    let n = 0;
+    for (const r of rows) { const fd = new FormData(); fd.set("id", r.id); const res = await remindInvoice(fd); if (res.ok) n++; }
+    return ok(`Reminders sent for ${n} overdue invoice${n === 1 ? "" : "s"}`);
+  });
+}

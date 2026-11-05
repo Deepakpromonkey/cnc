@@ -8,8 +8,9 @@ import { PeopleView, type UserVM } from "@/components/admin/people-view";
 
 export const metadata = { title: "Users & access" };
 
-export default async function PeoplePage() {
+export default async function PeoplePage({ searchParams }: { searchParams: Promise<{ u?: string }> }) {
   const me = await requireUser(["admin", "group_admin"]);
+  const { u: initial } = await searchParams;
   const team = await teamScope(me);
   const month = istMonthDate();
   const [users, depts] = await Promise.all([
@@ -42,5 +43,5 @@ export default async function PeoplePage() {
     dobLabel: u.dob ? fmtDate(u.dob) : "",
   }));
   const groups = me.role === "admin" ? (await db.teamGroup.findMany({ where: { status: "active" }, orderBy: { name: "asc" } })).map((g) => g.name) : [];
-  return <PeopleView users={vms} deptCount={depts} groups={groups} superAdmin={me.role === "admin"} />;
+  return <PeopleView users={vms} deptCount={depts} groups={groups} superAdmin={me.role === "admin"} initial={initial ?? null} />;
 }

@@ -41,5 +41,19 @@ export default async function MoneyPage({ searchParams }: { searchParams: Promis
     billed: lakh(sum(book)), collected: lakh(sum(book.filter((i) => i.status === "paid"))), due: lakh(sum(book.filter((i) => i.status === "sent" || i.status === "viewed"))),
     overdue: lakh(sum(book.filter((i) => i.status === "overdue"))), month: monthName(now, true), live: razorpayLive(),
   };
-  return <MoneyView rows={vms} stats={stats} initial={sp.inv ?? null} openNew={sp.new === "1"} />;
+  // Aging: how long the unpaid money has been outstanding, in the buckets accountants use.
+  const unpaid = rows.filter((i) => ["sent", "viewed", "overdue"].includes(i.status));
+  const balance = (i: typeof rows[number]) => i.totalPaise - i.payments.reduce((s, p) => s + p.amountPaise, BigInt(0));
+  const lateDays = (i: typeof rows[number]) => (i.dueDate ? Math.round((today.getTime() - i.dueDate.getTime()) / DAY_MS) : 0);
+  const bucket = (test: (d: number) => boolean) => { const xs = unpaid.filter((i) => test(lateDays(i))); return { count: xs.length, amount: lakh(xs.reduce((s, i) => s + balance(i), BigInt(0))) }; };
+  const aging = {
+    buckets: [
+      { label: "Due in 7 days", ...bucket((d) => d <= 0 && d >= -7), hot: false },
+      { label: "1–30 days late", ...bucket((d) => d >= 1 && d <= 30), hot: true },
+      { label: "31–60 days late", ...bucket((d) => d >= 31 && d <= 60), hot: true },
+      { label: "60+ days late", ...bucket((d) => d > 60), hot: true },
+    ],
+    overdue: unpaid.filter((i) => i.status === "overdue").length,
+  };
+  return <MoneyView rows={vms} stats={stats} aging={aging} initial={sp.inv ?? null} openNew={sp.new === "1"} />;
 }

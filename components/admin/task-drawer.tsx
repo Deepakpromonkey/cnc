@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { ActionButton, ActionForm, StarInput, UploadMany, useUi } from "../kit";
+import { ActionButton, ActionForm, MentionInput, StarInput, UploadMany, useUi } from "../kit";
 import { useLookups } from "../lookups";
 import { Ext, Field, Pill, Stars, Who } from "../ui";
 import { FlagForm, TaskForm, ProjectForm, type ProjectInit } from "./forms";
@@ -28,6 +28,8 @@ function Attachments({ list }: { list: TaskVM["attachments"] }) {
 }
 
 function Comments({ list, action, id, placeholder }: { list: { who: string; when: string; body: string }[]; action: (fd: FormData) => Promise<import("@/lib/result").Result>; id: string; placeholder: string }) {
+  const L = useLookups();
+  const people = [...L.cs, ...L.employees].map((p) => ({ id: p.id, name: p.name }));
   return (
     <div>
       <h4 className="eyebrow" style={{ marginBottom: 8 }}>Comments · {list.length}</h4>
@@ -35,7 +37,7 @@ function Comments({ list, action, id, placeholder }: { list: { who: string; when
         : <p style={{ margin: "0 0 8px", fontSize: 13, color: "var(--muted)" }}>No comments yet.</p>}
       <ActionForm action={action} keepOpen resetOnSuccess className="">
         <input type="hidden" name="id" value={id} />
-        <div className="ask" style={{ marginTop: 10, borderRadius: 14 }}><input name="body" placeholder={placeholder} /><button type="submit">Post</button></div>
+        <div className="ask" style={{ marginTop: 10, borderRadius: 14 }}><MentionInput placeholder={placeholder} people={people} /><button type="submit">Post</button></div>
       </ActionForm>
     </div>
   );
@@ -124,6 +126,8 @@ export function TaskDrawer({ t, flag }: { t: TaskVM; flag?: boolean }) {
       <Comments list={t.comments} action={commentTask} id={t.id} placeholder="Comment · @ to mention" />
       <div className="actions">
         <button className="btn primary" onClick={() => open(<TaskForm task={t} />)}>Edit task</button>
+        <button className="btn" onClick={() => open(<TaskForm task={t} duplicate />)} title="Same brand, project, people and brief — new name and deadline">Duplicate</button>
+        <a className="btn" href={`/api/tasks/${t.id}/ics`} download title="Download a calendar event for the deadline">Add to calendar</a>
         <ActionButton action={nudgeAssignee} values={{ id: t.id }}>Ask Sarthi to nudge {t.assignees[0]?.name.split(" ")[0]}</ActionButton>
         {flag && t.assignees[0] ? <button className="btn" onClick={() => open(<FlagForm personId={t.assignees[0].id} employeesOnly />)}>Flag assignee</button> : null}
       </div>

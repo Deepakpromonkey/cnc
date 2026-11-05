@@ -183,3 +183,54 @@ export async function askSarthi(question: string): Promise<{ ok: true; answer: s
     return { ok: false, error: e instanceof Error ? e.message : "Sarthi is unreachable" };
   }
 }
+
+// ---------- Quick jump (⌘K) ----------
+export type JumpHit = { kind: "task" | "brand" | "person" | "invoice" | "request" | "project"; id: string; title: string; sub: string; url: string };
+
+/** Search what the signed-in user may see and return deep links into their own portal. */
+export async function quickSearch(question: string): Promise<{ ok: true; hits: JumpHit[] } | { ok: false; error: string }> {
+  try {
+    const u = await actor();
+    const q = question.trim().slice(0, 80);
+    if (q.length < 2) return { ok: true, hits: [] };
+    const { brandScope, taskScope, teamScope } = await import("@/lib/queries");
+    const portal = u.role === "client" ? "/client" : u.role === "admin" || u.role === "group_admin" ? "/admin" : "/team";
+    const like = { contains: q, mode: "insensitive" as const };
+    const num = /^\s*(t|inv|wr|p)?-?\s*(\d+)\s*$/i.exec(q);
+    const n = num ? Number(num[2]) : null;
+    const [bScope, tScope, team] = await Promise.all([brandScope(u), taskScope(u), teamScope(u)]);
+    const inB = bScope ? { id: { in: bScope } } : {};
+    const hits: JumpHit[] = [];
+
+    const tasks = await db.task.findMany({
+      where: { AND: [tScope, { OR: [{ name: like }, { brand: { name: like } }, ...(n !== null ? [{ code: n }] : [])] }] },
+      include: { brand: true, status: true, assignees: { include: { user: true }, take: 1 } }, orderBy: { updatedAt: "desc" }, take: 6,
+    });
+    for (const t of tasks) hits.push({ kind: "task", id: t.id, title: t.name, sub: `T-${t.code} · ${t.brand.name} · ${t.status.name}${t.assignees[0] ? ` · ${fullName(t.assignees[0].user)}` : ""}`, url: portal === "/client" ? `/client/work?piece=${t.id}` : `${portal}/tasks?task=${t.id}` });
+
+    if (u.role !== "client") {
+      const brands = await db.brand.findMany({ where: { AND: [inB, { OR: [{ name: like }, { companyName: like }] }] }, select: { id: true, name: true, companyName: true, status: true }, take: 4 });
+      for (const b of brands) hits.push({ kind: "brand", id: b.id, title: b.name, sub: `Brand · ${b.companyName ?? ""}${b.status === "inactive" ? " · inactive" : ""}`, url: portal === "/admin" ? `/admin/brands?b=${b.id}` : "/team/brands" });
+    }
+    if (u.role === "admin" || u.role === "group_admin") {
+      const people = await db.user.findMany({
+        where: { AND: [team ? { id: { in: team } } : {}, { role: { not: "client" } }, { OR: [{ firstName: like }, { lastName: like }, { loginId: like }, { email: like }] }] },
+        include: { department: true }, take: 4,
+      });
+      for (const p of people) hits.push({ kind: "person", id: p.id, title: fullName(p), sub: `${p.designation ?? p.role}${p.department ? ` · ${p.department.name}` : ""}`, url: `/admin/people?u=${p.id}` });
+      const projects = await db.project.findMany({ where: { AND: [bScope ? { brandId: { in: bScope } } : {}, { archivedAt: null }, { OR: [{ name: like }, ...(n !== null ? [{ code: n }] : [])] }] }, include: { brand: true }, take: 3 });
+      for (const p of projects) hits.push({ kind: "project", id: p.id, title: p.name, sub: `Project · ${p.brand.name}`, url: `/admin/tasks?project=${p.id}` });
+    }
+    if (u.role === "admin" || u.role === "client") {
+      const invoices = await db.invoice.findMany({ where: { AND: [u.role === "client" ? { brandId: u.brandId ?? "" } : {}, { OR: [{ brand: { name: like } }, { notes: like }, ...(n !== null ? [{ number: n }] : [])] }] }, include: { brand: true }, orderBy: { number: "desc" }, take: 4 });
+      for (const i of invoices) hits.push({ kind: "invoice", id: i.id, title: `INV-${i.number} · ${i.brand.name}`, sub: `Invoice · ${i.status}${i.notes ? ` · ${i.notes}` : ""}`, url: `${portal === "/client" ? "/client/money" : "/admin/money"}?inv=${i.id}` });
+    }
+    if (u.role !== "employee") {
+      const reqs = await db.workRequest.findMany({ where: { AND: [u.role === "client" ? { brandId: u.brandId ?? "" } : bScope ? { brandId: { in: bScope } } : {}, { OR: [{ subject: like }, { brand: { name: like } }, ...(n !== null ? [{ code: n }] : [])] }] }, include: { brand: true }, orderBy: { date: "desc" }, take: 3 });
+      for (const r of reqs) hits.push({ kind: "request", id: r.id, title: `“${r.subject}”`, sub: `WR-${r.code} · ${r.brand.name} · ${r.status.replace("_", " ")}`, url: `${portal}/requests?r=${r.id}` });
+    }
+    return { ok: true, hits: hits.slice(0, 14) };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Search failed" };
+  }
+}

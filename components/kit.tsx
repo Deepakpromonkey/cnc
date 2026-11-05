@@ -265,6 +265,47 @@ export function UploadMany({ name, label, hint, linkName }: { name: string; labe
   );
 }
 
+/**
+ * Comment box with @mention autocomplete: type "@" and a name, pick from the list.
+ * The server resolves "@First" to the user, so inserting the first name is enough.
+ */
+export function MentionInput({ name = "body", placeholder, people }: { name?: string; placeholder: string; people: { id: string; name: string }[] }) {
+  const [v, setV] = useState("");
+  const [sel, setSel] = useState(0);
+  const ref = useRef<HTMLInputElement>(null);
+  const m = /@([A-Za-z]*)$/.exec(v.slice(0, ref.current?.selectionStart ?? v.length));
+  const opts = m ? people.filter((p) => p.name.toLowerCase().startsWith(m[1].toLowerCase())).slice(0, 6) : [];
+  const pick = (p: { name: string }) => {
+    const pos = ref.current?.selectionStart ?? v.length;
+    const before = v.slice(0, pos).replace(/@[A-Za-z]*$/, `@${p.name.split(" ")[0]} `);
+    setV(before + v.slice(pos)); setSel(0);
+    requestAnimationFrame(() => { ref.current?.focus(); ref.current?.setSelectionRange(before.length, before.length); });
+  };
+  return (
+    <span className="mention">
+      <input ref={ref} name={name} value={v} placeholder={placeholder} autoComplete="off" onChange={(e) => { setV(e.target.value); setSel(0); }}
+        onKeyDown={(e) => {
+          if (!opts.length) return;
+          if (e.key === "ArrowDown") { e.preventDefault(); setSel((i) => (i + 1) % opts.length); }
+          else if (e.key === "ArrowUp") { e.preventDefault(); setSel((i) => (i - 1 + opts.length) % opts.length); }
+          else if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); pick(opts[sel]); }
+        }} />
+      {opts.length ? <div className="mention-pop">{opts.map((p, i) => <button type="button" key={p.id} className={i === sel ? "on" : ""} onMouseDown={(e) => { e.preventDefault(); pick(p); }}>@{p.name}</button>)}</div> : null}
+    </span>
+  );
+}
+
+/** Copies a prepared text (e.g. the morning summary) to the clipboard and toasts. */
+export function CopyText({ text, children, className = "btn" }: { text: string; children: ReactNode; className?: string }) {
+  const { toast } = useUi();
+  return (
+    <button type="button" className={className} onClick={async () => {
+      try { await navigator.clipboard.writeText(text); toast("Copied — paste it into WhatsApp or mail"); }
+      catch { toast("Couldn't copy on this browser"); }
+    }}>{children}</button>
+  );
+}
+
 export function StarInput({ name, initial = 0 }: { name: string; initial?: number }) {
   const [n, setN] = useState(initial);
   return (

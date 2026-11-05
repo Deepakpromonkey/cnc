@@ -21,6 +21,8 @@ export type TaskVM = {
   attachments: AttachVM[]; history: { text: string; when: string; by: string; red: boolean }[]; eod: { text: string; when: string; by: string }[];
   comments: { who: string; when: string; body: string; client: boolean }[]; clientRating: { stars: number; review: string; on: string } | null;
   csRating: number | null; gateSince: string; doneOn: string; clientLabel: string; requestCode: string | null;
+  /** Whole days the task has sat in its current status (0 = moved today). */
+  inStatusDays: number;
 };
 
 export async function statusVMs(): Promise<StatusVM[]> {
@@ -63,6 +65,7 @@ export function taskVM(t: TaskRow, now = new Date()): TaskVM {
     csRating: t.ratings.find((r) => r.raterKind === "cs")?.stars ?? null,
     gateSince: gate ? fmtWhen(gate.at, now) : "", doneOn: done ? fmtDate(done.at) : "",
     clientLabel: clientLabel(t.status), requestCode: t.convertedFrom[0] ? `WR-${t.convertedFrom[0].code}` : null,
+    inStatusDays: Math.max(0, Math.floor((now.getTime() - (t.history[t.history.length - 1]?.at ?? t.createdAt).getTime()) / 864e5)),
   };
 }
 

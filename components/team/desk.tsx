@@ -1,6 +1,6 @@
 "use client";
 // The employee's own task drawer and the EOD form (spec §8 My tasks, §6.3, §6.4).
-import { ActionButton, ActionForm, UploadMany, useUi } from "../kit";
+import { ActionButton, ActionForm, MentionInput, UploadMany, useUi } from "../kit";
 import { useLookups } from "../lookups";
 import { Ext, Field, Pill, Who } from "../ui";
 import { PriPill, StatusPill } from "../admin/task-drawer";
@@ -86,9 +86,10 @@ export function MyTaskDrawer({ t, eod }: { t: TaskVM; eod?: string }) {
         {t.comments.length ? <div className="chat">{t.comments.map((c, i) => <div key={i} className="bubble q" style={{ maxWidth: "100%" }}><small>{c.who} · {c.when}</small>{c.body}</div>)}</div> : <p className="muted small" style={{ margin: "0 0 8px" }}>No comments yet.</p>}
         <ActionForm action={commentTask} keepOpen resetOnSuccess className="">
           <input type="hidden" name="id" value={t.id} />
-          <div className="ask" style={{ marginTop: 10, borderRadius: 14 }}><input name="body" placeholder="Comment · @ to mention" /><button type="submit">Post</button></div>
+          <div className="ask" style={{ marginTop: 10, borderRadius: 14 }}><MentionInput placeholder="Comment · @ to mention" people={[...L.cs, ...L.employees].map((p) => ({ id: p.id, name: p.name }))} /><button type="submit">Post</button></div>
         </ActionForm>
       </div>
+      <div className="actions"><a className="btn" href={`/api/tasks/${t.id}/ics`} download title="Download a calendar event for the deadline">Add deadline to my calendar</a></div>
     </>
   );
 }

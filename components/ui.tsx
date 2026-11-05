@@ -42,7 +42,7 @@ export type Stat = [ReactNode, string, ("hot" | "gold" | "")?];
 
 export function Stats({ items, cols }: { items: Stat[]; cols?: number }) {
   return (
-    <div className="stats" style={cols ? { gridTemplateColumns: `repeat(${cols},minmax(0,1fr))`, gap: 8 } : undefined}>
+    <div className={`stats${cols ? " compact" : ""}`} style={cols ? { "--cols": cols } as React.CSSProperties : undefined}>
       {items.map(([v, l, c], i) => (
         <div className="stat" key={i} style={cols ? { padding: "10px 12px" } : undefined}>
           <b className={`num ${c ?? ""}`} style={cols ? { fontSize: 24 } : undefined}>{v}</b>
