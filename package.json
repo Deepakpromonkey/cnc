@@ -1,0 +1,53 @@
+{
+  "name": "cnc-crm",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3040",
+    "build": "next build",
+    "start": "next start -p 3040",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck && npm run lint",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "tsx --env-file=.env prisma/seed.ts",
+    "db:reset": "prisma migrate reset --force",
+    "worker": "tsx --require ./jobs/preload.cjs --env-file=.env jobs/worker.ts",
+    "jobs:nightly": "tsx --require ./jobs/preload.cjs --env-file=.env jobs/run-nightly.ts",
+    "migrate:legacy": "tsx migration/run.ts",
+    "db:seed-groups": "tsx --env-file=.env prisma/seed-groups.ts"
+  },
+  "prisma": {
+    "seed": "tsx --env-file=.env prisma/seed.ts"
+  },
+  "dependencies": {
+    "@node-rs/argon2": "^2.2.2",
+    "@prisma/client": "^6.19.3",
+    "bullmq": "^6.4.2",
+    "ioredis": "^6.0.0",
+    "jose": "^6.2.13",
+    "next": "^15.5.28",
+    "nodemailer": "^10.2.1",
+    "pdfkit": "^0.20.2",
+    "pino": "^10.4.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "server-only": "^0.0.1",
+    "sharp": "^0.35.5",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/nodemailer": "^8.0.2",
+    "@types/pdfkit": "^0.17.7",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^15.5.28",
+    "mysql2": "^3.24.6",
+    "prisma": "^6.19.3",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
+  }
+}
