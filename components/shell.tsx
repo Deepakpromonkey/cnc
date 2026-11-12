@@ -5,7 +5,8 @@ import { useEffect, useRef, useState, useTransition, type ReactNode } from "reac
 import { createPortal } from "react-dom";
 import { UiProvider, useUi } from "./kit";
 import { ini } from "./ui";
-import { askSarthi, markAllRead, openNotification, savePrefs, signOut, stopImpersonating, uploadBackdrop } from "@/app/actions/common";
+import { SaarthiStaff, askSaarthiStaff, logoutSaarthiStaff, openSaarthiStaff } from "./saarthi-staff";
+import { askSarthi, markAllRead, noteStaffAsk, openNotification, savePrefs, signOut, stopImpersonating, uploadBackdrop } from "@/app/actions/common";
 import { pendingForLogout, saveLogoutReasons, type PendingTask } from "@/app/actions/team";
 
 export type NavItem = { href: string; label: string; icon: keyof typeof ICONS; count?: number; hot?: boolean };
@@ -79,7 +80,7 @@ function Clock({ place }: { place?: string }) {
   );
 }
 
-function AskBox({ placeholder }: { placeholder: string }) {
+function AskBox({ placeholder, staff }: { placeholder: string; staff: boolean }) {
   const { open, toast } = useUi();
   const router = useRouter();
   const [q, setQ] = useState("");
@@ -89,6 +90,13 @@ function AskBox({ placeholder }: { placeholder: string }) {
       e.preventDefault();
       const question = q.trim();
       if (!question || pending) return;
+      // With the Saarthi Staff assistant on the page its panel opens and answers; the CRM only keeps
+      // its "agent.ask" audit row. If the assistant's script couldn't load, the CRM's own answers stand in.
+      if (staff && askSaarthiStaff(question)) {
+        setQ("");
+        noteStaffAsk(question).catch(() => {});
+        return;
+      }
       start(async () => {
         const r = await askSarthi(question);
         if (!r.ok) { toast(r.error); return; }
@@ -146,6 +154,21 @@ function Bell({ items, base }: { items: Notif[]; base: string }) {
         </div>
       ) : null}
     </div>
+  );
+}
+
+/** The rail's "Sarthi is awake" chip. With the Saarthi Staff assistant on the page it opens the panel. */
+function SarthiChip({ sub, staff }: { sub: string; staff: boolean }) {
+  const { toast } = useUi();
+  if (!staff) return <div className="sarthi-chip"><span className="dot" /><div><b>Sarthi is awake</b><span>{sub}</span></div></div>;
+  return (
+    <button type="button" className="sarthi-chip" aria-haspopup="dialog" title="Open the Sarthi assistant"
+      style={{ width: "100%", margin: 0, font: "inherit", color: "inherit", textAlign: "start", cursor: "pointer" }}
+      onClick={() => { if (!openSaarthiStaff()) toast("Sarthi couldn't load. Reload the page to try again."); }}>
+      <span className="dot" />
+      {/* A span (a button holds no div); its style undoes `.sarthi-chip span`, meant for the line below. */}
+      <span style={{ display: "block", fontSize: "inherit", color: "inherit" }}><b>Sarthi is awake</b><span>{sub}</span></span>
+    </button>
   );
 }
 
@@ -235,7 +258,8 @@ function SignOut({ checkTasks }: { checkTasks: boolean }) {
   const [pending, setPending] = useState<PendingTask[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const leave = async () => { await signOut(); window.location.href = "/login"; };
+  // The Saarthi Staff assistant signs out with the CRM, in every tab, without holding the sign-out up.
+  const leave = async () => { logoutSaarthiStaff(); await signOut(); window.location.href = "/login"; };
   return (
     <>
       <button className="linkbtn" style={{ fontSize: 11 }} disabled={busy} onClick={async () => {
@@ -280,16 +304,20 @@ function SignOut({ checkTasks }: { checkTasks: boolean }) {
 }
 
 export function Shell({
-  portal, tagline, nav, me, notifs, prefs, ask, place, impersonating, children,
+  portal, tagline, nav, me, notifs, prefs, ask, place, impersonating, staff, children,
 }: {
   portal: "admin" | "client" | "team"; tagline: string; nav: NavItem[]; me: { name: string; sub: string };
-  notifs: Notif[]; prefs: Prefs; ask?: string; place?: string; impersonating?: boolean; children: ReactNode;
+  notifs: Notif[]; prefs: Prefs; ask?: string; place?: string; impersonating?: boolean;
+  /** The Saarthi Staff assistant (spec §10.3): staff portals only, never while impersonating. */
+  staff?: { url: string; key: string };
+  children: ReactNode;
 }) {
   const path = usePathname();
   const base = `/${portal}`;
   const active = (href: string) => (href === base ? path === base : path.startsWith(href));
   return (
     <UiProvider>
+      {staff ? <SaarthiStaff url={staff.url} staffKey={staff.key} /> : null}
       <div className="shell">
         <aside className="side">
           <div className="logo">
@@ -306,7 +334,7 @@ export function Shell({
             ))}
           </nav>
           <div className="foot">
-            <div className="sarthi-chip"><span className="dot" /><div><b>Sarthi is awake</b><span>{portal === "admin" ? "Reading the brew · WhatsApp live" : "WhatsApp live"}</span></div></div>
+            <SarthiChip sub={portal === "admin" ? "Reading the brew · WhatsApp live" : "WhatsApp live"} staff={!!staff} />
             <ThemeButton className="theme-toggle"><i /> Crema / Espresso</ThemeButton>
           </div>
         </aside>
@@ -317,7 +345,7 @@ export function Shell({
           ) : null}
           <div className="top">
             <Clock place={place} />
-            {ask ? <AskBox placeholder={ask} /> : <div style={{ flex: "1 1 200px" }} />}
+            {ask ? <AskBox placeholder={ask} staff={!!staff} /> : <div style={{ flex: "1 1 200px" }} />}
             <div className="tools">
               <Bell items={notifs} base={base} />
               <ThemeButton className="tbtn">

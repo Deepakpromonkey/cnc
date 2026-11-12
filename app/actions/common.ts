@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { actor, currentUser, endSession, fullName, hashPassword, homeFor, newToken, sha256, startSession, verifyPassword } from "@/lib/auth";
 import { audit } from "@/lib/events";
 import { ask } from "@/lib/sarthi-sdk";
+import { saarthiStaffConfig } from "@/lib/saarthi-staff";
 import { fileUrl, saveImage } from "@/lib/storage";
 import { sendMail } from "@/lib/mail";
 import { fail, guard, ok, str, type Result } from "@/lib/result";
@@ -182,4 +183,21 @@ export async function askSarthi(question: string): Promise<{ ok: true; answer: s
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Sarthi is unreachable" };
   }
+}
+
+/**
+ * The Ask box handed a question to the Saarthi Staff assistant's panel (spec §10.3). The answer
+ * lives on Saarthi; the CRM keeps its own "agent.ask" row, in the shape askSarthi writes.
+ */
+export async function noteStaffAsk(question: string): Promise<Result> {
+  return guard(async () => {
+    const u = await actor(["admin", "group_admin", "cs", "employee"]);
+    if (u.impersonatorId) return fail("Not while viewing as someone else.");
+    // Without the assistant there was no hand-off, so nothing to record.
+    if (!saarthiStaffConfig()) return fail("The Saarthi Staff assistant isn't set up.");
+    const q = String(question ?? "").trim().slice(0, 500);
+    if (!q) return fail("Ask something");
+    await audit(db, u, "agent.ask", "sarthi", null, undefined, { question: q, via: "saarthi_staff" });
+    return ok();
+  });
 }
