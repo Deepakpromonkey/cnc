@@ -18,3 +18,4 @@
 - Logins: any seeded user by login ID (e.g. admin `vipin`, CS `jahanavi`, client `neharika@himalayaopticals.in`); the password is `SEED_PASSWORD` in `.env`. Never paste it into code, docs or chat.
 - Jobs: `npm run worker` (BullMQ schedules, IST) or `npm run jobs:nightly` (one-shot close-day + scores + overdue). Job code runs with `jobs/preload.cjs`, which stubs the `server-only` marker outside Next.
 - Without `RAZORPAY_*` keys, invoices get a mock checkout link (`/pay/mock/:id`); without `SARTHI_API_URL`, the Ask box answers from the CRM's own data (lib/sarthi-sdk.ts); without `SMTP_HOST`, mail is logged, not sent.
+- Without `SAARTHI_STAFF_KEY` and `SAARTHI_STAFF_SECRET`, the Saarthi Staff assistant doesn't load and the Ask box behaves as before; to run it (e.g. against a local Saarthi on :5000), see docs/saarthi-staff-assistant.md.
