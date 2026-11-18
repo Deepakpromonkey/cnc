@@ -4,6 +4,7 @@ import { brandScope, lateTaskWhere, notifsFor, prefsFor, taskScope } from "@/lib
 import { Shell, type NavItem } from "@/components/shell";
 import { LookupsProvider } from "@/components/lookups";
 import { adminLookups } from "@/lib/views";
+import { saarthiStaffConfig } from "@/lib/saarthi-staff";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +43,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <LookupsProvider value={lookups}>
     <Shell portal="admin" tagline={ga ? `Sarpanch · ${group?.name ?? "Group"}` : "Sarpanch · Admin"} nav={nav} notifs={notifs} prefs={prefsFor(u)}
       me={{ name: fullName(u), sub: ga ? `Group admin · ${group?.name ?? "no group"}` : `Admin · ${u.designation?.split(" ")[0] ?? ""}` }}
-      ask="Ask Sarthi… “Thermocool ka reel kahan tak pahuncha?”" place="Sector 63, Noida">
+      ask="Ask Sarthi… “Thermocool ka reel kahan tak pahuncha?”" place="Sector 63, Noida"
+      staff={u.impersonatorId ? undefined : saarthiStaffConfig() ?? undefined}>
       {children}
     </Shell>
     </LookupsProvider>

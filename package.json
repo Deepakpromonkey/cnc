@@ -16,7 +16,8 @@
     "worker": "tsx --require ./jobs/preload.cjs --env-file=.env jobs/worker.ts",
     "jobs:nightly": "tsx --require ./jobs/preload.cjs --env-file=.env jobs/run-nightly.ts",
     "migrate:legacy": "tsx migration/run.ts",
-    "db:seed-groups": "tsx --env-file=.env prisma/seed-groups.ts"
+    "db:seed-groups": "tsx --env-file=.env prisma/seed-groups.ts",
+    "check:saarthi-views": "tsx --require ./jobs/preload.cjs --env-file=.env scripts/check-saarthi-views.ts"
   },
   "prisma": {
     "seed": "tsx --env-file=.env prisma/seed.ts"

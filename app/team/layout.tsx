@@ -4,6 +4,7 @@ import { brandScope, notifsFor, prefsFor, taskScope } from "@/lib/queries";
 import { teamLookups } from "@/lib/team-views";
 import { Shell, type NavItem } from "@/components/shell";
 import { LookupsProvider } from "@/components/lookups";
+import { saarthiStaffConfig } from "@/lib/saarthi-staff";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +48,8 @@ export default async function TeamLayout({ children }: { children: React.ReactNo
     <LookupsProvider value={lookups}>
       <Shell portal="team" tagline={u.role === "cs" ? "Paltan · Client servicing" : "Paltan · Team"} nav={nav} notifs={notifs} prefs={prefsFor(u)}
         me={{ name: fullName(u), sub: u.designation ?? (u.role === "cs" ? "Client servicing" : "Team") }}
-        ask={u.role === "cs" ? "Ask Sarthi about your brands… “Kisan ka dieline kab tak?”" : "Ask Sarthi about your tasks… “aaj kya due hai?”"} place="Sector 63, Noida">
+        ask={u.role === "cs" ? "Ask Sarthi about your brands… “Kisan ka dieline kab tak?”" : "Ask Sarthi about your tasks… “aaj kya due hai?”"} place="Sector 63, Noida"
+        staff={u.impersonatorId ? undefined : saarthiStaffConfig() ?? undefined}>
         {children}
       </Shell>
     </LookupsProvider>
