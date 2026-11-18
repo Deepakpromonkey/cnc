@@ -18,6 +18,7 @@ export async function saveTask(fd: FormData): Promise<Result> {
     const u = await actor(["admin", "group_admin", "cs"]);
     const id = opt(fd, "id");
     const brandId = str(fd, "brandId");
+    if (!brandId) return fail("Pick a brand");
     await assertBrand(u, brandId);
     const name = str(fd, "name");
     const assigneeIds = all(fd, "assignees");
@@ -219,6 +220,7 @@ export async function saveProject(fd: FormData): Promise<Result> {
     const u = await actor(["admin", "group_admin", "cs"]);
     const id = opt(fd, "id");
     const brandId = str(fd, "brandId");
+    if (!brandId) return fail("Pick a brand");
     await assertBrand(u, brandId);
     const name = str(fd, "name");
     if (!name) return fail("Name the project");

@@ -96,6 +96,7 @@ export function ActionForm({
     <form
       ref={ref}
       className={className}
+      autoComplete="off"
       aria-busy={pending}
       onSubmit={(e) => {
         e.preventDefault();

@@ -35,7 +35,7 @@ export function TaskCard({ t, onOpen, draggable, onDragStart, onDragEnd, draggin
   );
 }
 
-type SortKey = "due" | "name" | "brand" | "assignee" | "status";
+type SortKey = "new" | "due" | "name" | "brand" | "assignee" | "status";
 
 /** Today's date key in IST (YYYY-MM-DD), matching TaskVM.dueKey. */
 function istTodayKey() {
@@ -65,7 +65,7 @@ export function TasksView({ tasks, projects, doneLabel, doneThisMonth, initialTa
   const [q, setQ] = useState("");
   const [brand, setBrand] = useState("");
   const [person, setPerson] = useState("");
-  const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "due", dir: 1 });
+  const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "new", dir: 1 });
   const [showAllDone, setShowAllDone] = useState(false);
   const [dragId, setDragId] = useState<string | null>(null);
   const [overCol, setOverCol] = useState<string | null>(null);
@@ -107,6 +107,7 @@ export function TasksView({ tasks, projects, doneLabel, doneThisMonth, initialTa
   const sorted = useMemo(() => {
     const order = new Map(L.statuses.map((s, i) => [s.id, i]));
     const key = (t: TaskVM) => sort.key === "due" ? t.dueKey : sort.key === "name" ? t.name.toLowerCase() : sort.key === "brand" ? t.brand.toLowerCase() : sort.key === "assignee" ? (t.assignees[0]?.name ?? "").toLowerCase() : String(order.get(t.status.id) ?? 99).padStart(2, "0");
+    if (sort.key === "new") return sort.dir === 1 ? rows : [...rows].reverse();
     return [...rows].sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0) * sort.dir);
   }, [rows, sort, L.statuses]);
   const projRows = projects.filter((p) => !q || `${p.name} ${p.brand} ${p.type} ${p.brandPoc}`.toLowerCase().includes(q.toLowerCase()));

@@ -163,7 +163,7 @@ function LeaveForm() {
     <ActionForm action={applyLeave} className="dform">
       <div className="eyebrow">Apply for leave</div><h2>Time {em("off.")}</h2>
       <div className="form">
-        <div className="two"><F label="From"><input type="date" name="fromDate" required /></F><F label="To"><input type="date" name="toDate" /></F></div>
+        <div className="two"><F label="From"><input autoComplete="off" type="date" name="fromDate" required /></F><F label="To"><input autoComplete="off" type="date" name="toDate" /></F></div>
         <F label="Type"><Sel name="type" options={[["casual", "Casual"], ["sick", "Sick"], ["half_day", "Half day"], ["wfh", "Work from home"]]} value="casual" /></F>
         <F label="Reason"><textarea name="reason" style={TA} /></F>
         <p className="muted small" style={{ margin: 0 }}>Goes to admin. Approved days show as leave on your calendar and don&apos;t count as absent.</p>
@@ -215,7 +215,7 @@ function ConcernForm() {
       <div className="eyebrow">Raise a concern</div><h2>Say it, it&apos;s {em("heard.")}</h2>
       <div className="form">
         <F label="Category"><Sel name="category" options={Object.entries(CONCERN_CATEGORIES)} value="workload" /></F>
-        <F label="Subject"><input name="subject" required /></F>
+        <F label="Subject"><input autoComplete="off" name="subject" required /></F>
         <F label="Details"><textarea name="details" style={{ ...TA, minHeight: 110 }} required placeholder="What happened, since when, what would help" /></F>
         <UploadOne name="file" label="Screenshot (optional)" hint="Chats, a brief, anything that helps" />
         <Switch name="confidential" label="Confidential" sub="Only admin and HR see it — hidden from CS leads" />
@@ -234,8 +234,8 @@ function ConcernCard({ c, canReply }: { c: ConcernC; canReply: boolean }) {
       {c.thread.map((m, i) => <div key={i} className={`bubble ${m.mine ? "q" : "a"}`} style={{ maxWidth: "100%" }}><small>{m.who} · {m.when}</small>{m.body}</div>)}
       {canReply && c.status !== "resolved" ? (
         <ActionForm action={replyConcern} keepOpen resetOnSuccess className="">
-          <input type="hidden" name="id" value={c.id} />
-          <div className="ask" style={{ borderRadius: 14 }}><input name="body" placeholder={`Add to this · owner ${c.owner}`} /><button type="submit">Send</button></div>
+          <input autoComplete="off" type="hidden" name="id" value={c.id} />
+          <div className="ask" style={{ borderRadius: 14 }}><input autoComplete="off" name="body" placeholder={`Add to this · owner ${c.owner}`} /><button type="submit">Send</button></div>
         </ActionForm>
       ) : <p className="muted small" style={{ margin: 0 }}>{canReply ? "Resolved." : `Owner: ${c.owner.split(" → ")[1]} · read only`}</p>}
     </section>
@@ -321,7 +321,7 @@ type Prof = { id: string; name: string; role: string; dept: string; desig: strin
 function ProfileForm({ p }: { p: Prof }) {
   const { close } = useUi();
   const x = p.fields;
-  const fi = (label: string, k: string) => <F label={label}><input name={k} defaultValue={x[k] ?? ""} /></F>;
+  const fi = (label: string, k: string) => <F label={label}><input autoComplete="off" name={k} defaultValue={x[k] ?? ""} /></F>;
   return (
     <ActionForm action={updateOwnProfile} className="dform">
       <div className="eyebrow">Edit profile</div><h2>{p.name}</h2>

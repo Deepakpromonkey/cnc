@@ -22,7 +22,7 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
         department: true, brand: true, group: true, reportsTo: true, _count: { select: { reports: true } }, scores: { where: { month } }, flagsReceived: { where: { month }, include: { type: true } },
         assignments: { include: { task: { include: { status: true } } } },
       },
-      orderBy: [{ role: "asc" }, { firstName: "asc" }],
+      orderBy: [{ role: "asc" }, { createdAt: "desc" }],
     }),
     db.department.count({ where: { status: "active" } }),
   ]);

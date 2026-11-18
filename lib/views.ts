@@ -70,7 +70,7 @@ export function taskVM(t: TaskRow, now = new Date()): TaskVM {
 }
 
 export async function loadTasks(where: Prisma.TaskWhereInput, take?: number) {
-  const rows = await db.task.findMany({ where, include: taskInclude, orderBy: { deadlineAt: "asc" }, take });
+  const rows = await db.task.findMany({ where, include: taskInclude, orderBy: [{ createdAt: "desc" }], take });
   const now = new Date();
   return rows.map((t) => taskVM(t, now));
 }
@@ -112,7 +112,7 @@ export async function loadProjects(where: Prisma.ProjectWhereInput, tasks?: Task
   const rows = await db.project.findMany({
     where: { archivedAt: null, ...where },
     include: { brand: true, status: true, scope: { include: { scope: true } }, comments: { include: { user: true }, orderBy: { createdAt: "asc" } } },
-    orderBy: [{ deadline: "asc" }],
+    orderBy: [{ createdAt: "desc" }],
   });
   const all = tasks ?? (await loadTasks({ projectId: { in: rows.map((r) => r.id) } }));
   const now = new Date();

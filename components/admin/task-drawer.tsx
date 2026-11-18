@@ -36,7 +36,7 @@ function Comments({ list, action, id, placeholder }: { list: { who: string; when
       {list.length ? <div className="chat">{list.map((c, i) => <div key={i} className="bubble q" style={{ maxWidth: "100%" }}><small>{c.who} · {c.when}</small>{c.body}</div>)}</div>
         : <p style={{ margin: "0 0 8px", fontSize: 13, color: "var(--muted)" }}>No comments yet.</p>}
       <ActionForm action={action} keepOpen resetOnSuccess className="">
-        <input type="hidden" name="id" value={id} />
+        <input autoComplete="off" type="hidden" name="id" value={id} />
         <div className="ask" style={{ marginTop: 10, borderRadius: 14 }}><MentionInput placeholder={placeholder} people={people} /><button type="submit">Post</button></div>
       </ActionForm>
     </div>
@@ -73,14 +73,14 @@ export function TaskDrawer({ t, flag }: { t: TaskVM; flag?: boolean }) {
         <h4>Deliverables & updates</h4>
         <div style={{ marginTop: 8, display: "grid", gap: 8 }}><Attachments list={t.attachments} /></div>
         <ActionForm action={addDeliverables} keepOpen className="" resetOnSuccess>
-          <input type="hidden" name="id" value={t.id} />
+          <input autoComplete="off" type="hidden" name="id" value={t.id} />
           <div style={{ marginTop: 10 }}><UploadMany name="files" hint="Creatives, exports, screenshots · images upload here" linkName="link" /></div>
           <button className="btn" type="submit" style={{ marginTop: 8 }}>Add to task</button>
         </ActionForm>
       </div>
 
       <ActionForm action={moveTaskAction} keepOpen className="">
-        <input type="hidden" name="id" value={t.id} />
+        <input autoComplete="off" type="hidden" name="id" value={t.id} />
         <h4>Move to</h4>
         <select name="statusId" style={{ marginTop: 8 }} value={to} onChange={(e) => setTo(e.target.value)}>
           {L.statuses.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -112,7 +112,7 @@ export function TaskDrawer({ t, flag }: { t: TaskVM; flag?: boolean }) {
 
       {t.status.isDone || t.status.isReview || t.status.isClientGate ? (
         <ActionForm action={rateTaskCs} keepOpen className="">
-          <input type="hidden" name="id" value={t.id} />
+          <input autoComplete="off" type="hidden" name="id" value={t.id} />
           <h4>CS rating (feeds the score)</h4>
           <div className="bar" style={{ marginTop: 8, gap: 10 }}><StarInput name="stars" initial={t.csRating ?? 0} /><button className="btn" type="submit">Save rating</button></div>
         </ActionForm>
