@@ -1,6 +1,6 @@
 "use client";
 // The employee's own task drawer and the EOD form (spec §8 My tasks, §6.3, §6.4).
-import { ActionButton, ActionForm, UploadMany, useUi } from "../kit";
+import { ActionButton, ActionForm, MentionInput, UploadMany, useUi } from "../kit";
 import { useLookups } from "../lookups";
 import { Ext, Field, Pill, Who } from "../ui";
 import { PriPill, StatusPill } from "../admin/task-drawer";
@@ -56,7 +56,7 @@ export function MyTaskDrawer({ t, eod }: { t: TaskVM; eod?: string }) {
       </div>
       {!t.status.isDone ? (
         <ActionForm action={addDeliverables} keepOpen resetOnSuccess className="">
-          <input type="hidden" name="id" value={t.id} />
+          <input autoComplete="off" type="hidden" name="id" value={t.id} />
           <h4>Share my work</h4>
           <div style={{ marginTop: 8 }}><UploadMany name="files" hint="Exports, screenshots · images upload here, up to 10 MB each" linkName="link" /></div>
           <button className="btn" type="submit" style={{ marginTop: 8 }}>Add to task</button>
@@ -74,9 +74,9 @@ export function MyTaskDrawer({ t, eod }: { t: TaskVM; eod?: string }) {
       )}
       {!t.status.isDone ? (
         <ActionForm action={saveEod} keepOpen className="">
-          <input type="hidden" name="taskId" value={t.id} />
+          <input autoComplete="off" type="hidden" name="taskId" value={t.id} />
           <h4>Today&apos;s EOD line</h4>
-          <div className="ask" style={{ marginTop: 8, borderRadius: 14 }}><input name={`remark_${t.id}`} defaultValue={eod ?? ""} placeholder="What moved today on this task" /><button type="submit">Save</button></div>
+          <div className="ask" style={{ marginTop: 8, borderRadius: 14 }}><input autoComplete="off" name={`remark_${t.id}`} defaultValue={eod ?? ""} placeholder="What moved today on this task" /><button type="submit">Save</button></div>
         </ActionForm>
       ) : null}
       <div><h4>Timeline</h4>
@@ -85,10 +85,11 @@ export function MyTaskDrawer({ t, eod }: { t: TaskVM; eod?: string }) {
         <h4 className="eyebrow" style={{ marginBottom: 8 }}>Comments · {t.comments.length}</h4>
         {t.comments.length ? <div className="chat">{t.comments.map((c, i) => <div key={i} className="bubble q" style={{ maxWidth: "100%" }}><small>{c.who} · {c.when}</small>{c.body}</div>)}</div> : <p className="muted small" style={{ margin: "0 0 8px" }}>No comments yet.</p>}
         <ActionForm action={commentTask} keepOpen resetOnSuccess className="">
-          <input type="hidden" name="id" value={t.id} />
-          <div className="ask" style={{ marginTop: 10, borderRadius: 14 }}><input name="body" placeholder="Comment · @ to mention" /><button type="submit">Post</button></div>
+          <input autoComplete="off" type="hidden" name="id" value={t.id} />
+          <div className="ask" style={{ marginTop: 10, borderRadius: 14 }}><MentionInput placeholder="Comment · @ to mention" people={[...L.cs, ...L.employees].map((p) => ({ id: p.id, name: p.name }))} /><button type="submit">Post</button></div>
         </ActionForm>
       </div>
+      <div className="actions"><a className="btn" href={`/api/tasks/${t.id}/ics`} download title="Download a calendar event for the deadline">Add deadline to my calendar</a></div>
     </>
   );
 }
@@ -99,7 +100,7 @@ function PauseForm({ id, name }: { id: string; name: string }) {
     <ActionForm action={pauseTask} className="dform">
       <div className="eyebrow">Pause</div>
       <h2>{name}</h2>
-      <input type="hidden" name="id" value={id} />
+      <input autoComplete="off" type="hidden" name="id" value={id} />
       <div className="form"><div className="field">Why are you pausing?<textarea name="note" style={TA} placeholder="Waiting on copy from Ankit, client assets missing…" /></div>
         <p className="muted small" style={{ margin: 0 }}>The task stays in its column; your CS gets this note. The deadline doesn&apos;t move.</p></div>
       <div className="actions"><button className="btn primary" type="submit">Pause & tell CS</button><button className="btn" type="button" onClick={close}>Cancel</button></div>
@@ -119,9 +120,9 @@ export function EodForm({ tasks, eod, compact }: { tasks: TaskVM[]; eod: Record<
           const next = nextMoves(t.status, L.statuses);
           return (
             <div key={t.id} className="item" style={{ gridTemplateColumns: compact ? "minmax(0,1fr)" : "minmax(0,1fr) minmax(0,1.4fr) 150px", alignItems: "start", gap: 10 }}>
-              <input type="hidden" name="taskId" value={t.id} />
+              <input autoComplete="off" type="hidden" name="taskId" value={t.id} />
               <div className="t" style={{ fontSize: 13 }}>{t.name}<span>{t.brand} · {t.status.name}{t.isLate ? <> · <b style={{ color: "var(--brand-ink)" }}>{t.late}</b></> : null}</span></div>
-              <input name={`remark_${t.id}`} defaultValue={eod[t.id] ?? ""} placeholder="What moved today" style={{ ...TA, minHeight: 0, padding: "9px 12px" }} />
+              <input autoComplete="off" name={`remark_${t.id}`} defaultValue={eod[t.id] ?? ""} placeholder="What moved today" style={{ ...TA, minHeight: 0, padding: "9px 12px" }} />
               <select name={`status_${t.id}`} defaultValue={t.status.id} style={{ ...TA, minHeight: 0, padding: "9px 10px" }}>
                 <option value={t.status.id}>{t.status.name}</option>
                 {next.map((s) => <option key={s.id} value={s.id}>→ {s.name}</option>)}

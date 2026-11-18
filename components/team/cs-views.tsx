@@ -20,10 +20,10 @@ function ContactForm({ b }: { b: CsBrandVM }) {
   return (
     <ActionForm action={saveBrand} className="dform">
       <div className="eyebrow">Brand contacts</div><h2>{b.name}</h2>
-      <input type="hidden" name="id" value={b.id} /><input type="hidden" name="name" value={b.name} />
+      <input autoComplete="off" type="hidden" name="id" value={b.id} /><input autoComplete="off" type="hidden" name="name" value={b.name} />
       <div className="form">
-        <div className="two"><F label="POC name"><input name="pocName" defaultValue={p.pocName ?? ""} /></F><F label="POC phone"><input name="pocPhone" defaultValue={p.pocPhone ?? ""} /></F></div>
-        <div className="two"><F label="Official email"><input name="officialEmail" defaultValue={p.officialEmail ?? ""} /></F><F label="WhatsApp"><input name="whatsapp" defaultValue={p.whatsapp ?? ""} /></F></div>
+        <div className="two"><F label="POC name"><input autoComplete="off" name="pocName" defaultValue={p.pocName ?? ""} /></F><F label="POC phone"><input autoComplete="off" name="pocPhone" defaultValue={p.pocPhone ?? ""} /></F></div>
+        <div className="two"><F label="Official email"><input autoComplete="off" name="officialEmail" defaultValue={p.officialEmail ?? ""} /></F><F label="WhatsApp"><input autoComplete="off" name="whatsapp" defaultValue={p.whatsapp ?? ""} /></F></div>
         <p className="muted small" style={{ margin: 0 }}>CS can update contact fields. Company, tax, scope and engagement are edited by admin.</p>
       </div>
       <div className="actions"><button className="btn primary" type="submit">Save</button><button className="btn" type="button" onClick={close}>Cancel</button></div>
@@ -95,7 +95,7 @@ export function ReviewView({ queue, stats }: { queue: TaskVM[]; stats: { avg: st
         const sub = [...t.history].reverse().find((h) => /^In review/.test(h.text));
         return (
           <ActionForm key={t.id} action={reviewTask} keepOpen className="appcard">
-            <input type="hidden" name="id" value={t.id} />
+            <input autoComplete="off" type="hidden" name="id" value={t.id} />
             <div className="card-h">
               <div><div className="eyebrow">{t.brand} · {t.project} · submitted {sub?.when ?? "—"} by {sub?.by ?? t.assignees[0]?.name}</div>
                 <h2 style={{ fontSize: 22, fontFamily: "Fraunces,Georgia,serif", fontWeight: 300, cursor: "pointer" }} onClick={() => openTask(t)}>{t.name}</h2></div>
@@ -131,8 +131,8 @@ export function DigestView({ digests, nextLabel }: { digests: Digest[]; nextLabe
               {!d.optedIn ? <Pill cls="dim">client paused digests</Pill> : d.heldTomorrow ? <Pill cls="brand">held</Pill> : <Pill cls="gold">on</Pill>}</div>
             <div className="chat"><div className="bubble a" style={{ maxWidth: "100%", justifySelf: "start", whiteSpace: "pre-wrap", opacity: d.heldTomorrow || !d.optedIn ? 0.5 : 1 }}><small>Sarthi · preview</small>{d.text}{d.tomorrowLine ? `\n\n${d.tomorrowLine}` : ""}</div></div>
             <ActionForm action={setDigest} keepOpen className="">
-              <input type="hidden" name="brandId" value={d.id} /><input type="hidden" name="date" value={d.tomorrow} />
-              <div className="ask" style={{ borderRadius: 14 }}><input name="line" defaultValue={d.tomorrowLine} placeholder="Add a line — e.g. “Reels go live Friday”" /><button type="submit">Save</button></div>
+              <input autoComplete="off" type="hidden" name="brandId" value={d.id} /><input autoComplete="off" type="hidden" name="date" value={d.tomorrow} />
+              <div className="ask" style={{ borderRadius: 14 }}><input autoComplete="off" name="line" defaultValue={d.tomorrowLine} placeholder="Add a line — e.g. “Reels go live Friday”" /><button type="submit">Save</button></div>
             </ActionForm>
             <div className="actions"><ActionButton action={setDigest} values={{ brandId: d.id, date: d.tomorrow, hold: d.heldTomorrow ? "0" : "1" }}>{d.heldTomorrow ? "Send tomorrow after all" : "Hold tomorrow"}</ActionButton></div>
           </section>

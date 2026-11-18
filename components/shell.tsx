@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, useTransition, type ReactNode } from "reac
 import { createPortal } from "react-dom";
 import { UiProvider, useUi } from "./kit";
 import { ini } from "./ui";
+import { Palette, PaletteButton } from "./palette";
 import { SaarthiStaff, askSaarthiStaff, logoutSaarthiStaff, openSaarthiStaff } from "./saarthi-staff";
 import { askSarthi, markAllRead, noteStaffAsk, openNotification, savePrefs, signOut, stopImpersonating, uploadBackdrop } from "@/app/actions/common";
 import { pendingForLogout, saveLogoutReasons, type PendingTask } from "@/app/actions/team";
@@ -317,6 +318,7 @@ export function Shell({
   const active = (href: string) => (href === base ? path === base : path.startsWith(href));
   return (
     <UiProvider>
+      <Palette nav={nav} />
       {staff ? <SaarthiStaff url={staff.url} staffKey={staff.key} /> : null}
       <div className="shell">
         <aside className="side">
@@ -347,6 +349,7 @@ export function Shell({
             <Clock place={place} />
             {ask ? <AskBox placeholder={ask} staff={!!staff} /> : <div style={{ flex: "1 1 200px" }} />}
             <div className="tools">
+              <PaletteButton />
               <Bell items={notifs} base={base} />
               <ThemeButton className="tbtn">
                 <svg viewBox="0 0 24 24" className="sun"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>

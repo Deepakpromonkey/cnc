@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ActionForm, Chips, Switch, useLiveDrawer, useUi } from "../kit";
-import { Empty, Field, Ext, PageHead, Pill, Stats, Tags, Who, ini, type Stat } from "../ui";
+import { Empty, Field, Ext, PageHead, Pill, Stars, Stats, Tags, Who, ini, type Stat } from "../ui";
 import { CPill, Decide, PieceDrawer, Previews, StepBar } from "./piece";
 import { DetailsForm, PasswordForm, RequestForm, type Me } from "./forms";
 import { answerRequest } from "@/app/actions/ops";
@@ -57,6 +57,19 @@ export function HomeView(p: HomeProps) {
               </div>
             )) : <Empty>Nothing waiting. Enjoy the coffee.</Empty>}
           </div>
+          {p.pieces.some((t) => t.done) ? (
+            <div>
+              <div className="eyebrow" style={{ marginBottom: 6 }}>Recently delivered</div>
+              <div className="list">
+                {p.pieces.filter((t) => t.done).slice(0, 4).map((t) => (
+                  <div key={t.id} className="item" style={{ gridTemplateColumns: "minmax(0,1fr) auto", padding: "9px 0", cursor: "pointer" }} onClick={() => openPiece(t)}>
+                    <div className="t" style={{ fontSize: 13 }}>{t.name}<span>{t.project}{t.doneOn ? ` · delivered ${t.doneOn}` : ""}</span></div>
+                    <div className="r">{t.rating ? <Stars n={t.rating.stars} size={13} /> : <span className="st gold">Done · rate it</span>}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </section>
         <div style={{ display: "grid", gap: 22 }}>
           <section className="card">
@@ -246,8 +259,8 @@ export function RequestsView({ list, projects, me, initial }: { list: RequestCVM
               {!r.converted ? (
                 <ActionForm action={answerRequest} keepOpen resetOnSuccess className="">
                   <input type="hidden" name="id" value={r.id} />
-                  <textarea name="body" placeholder="Add to this request" required />
-                  <div className="actions" style={{ marginTop: 8 }}><button className="btn" type="submit">Send</button></div>
+                  <div className="field">Add to this request<textarea name="body" placeholder="A detail, a change, a question — your CS sees it here and on WhatsApp" required style={{ minHeight: 70, resize: "vertical" }} /></div>
+                  <div className="actions" style={{ marginTop: 8 }}><button className="btn primary" type="submit">Send</button></div>
                 </ActionForm>
               ) : null}
             </>

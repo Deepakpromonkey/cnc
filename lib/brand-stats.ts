@@ -15,7 +15,7 @@ export async function brandStats(brandIds?: string[]) {
       tasks: { where: { status: { isDone: false } }, include: { status: true, history: { orderBy: { at: "desc" }, take: 1 } } },
       invoices: { where: { status: { not: "void" } }, orderBy: { issueDate: "desc" } },
     },
-    orderBy: { name: "asc" },
+    orderBy: { createdAt: "desc" },
   });
   const lastTouch = await db.taskStatusHistory.groupBy({ by: ["taskId"], _max: { at: true } });
   const taskBrand = new Map((await db.task.findMany({ select: { id: true, brandId: true } })).map((t) => [t.id, t.brandId]));

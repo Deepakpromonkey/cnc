@@ -18,6 +18,7 @@ export async function saveTask(fd: FormData): Promise<Result> {
     const u = await actor(["admin", "group_admin", "cs"]);
     const id = opt(fd, "id");
     const brandId = str(fd, "brandId");
+    if (!brandId) return fail("Pick a brand");
     await assertBrand(u, brandId);
     const name = str(fd, "name");
     const assigneeIds = all(fd, "assignees");
@@ -219,6 +220,7 @@ export async function saveProject(fd: FormData): Promise<Result> {
     const u = await actor(["admin", "group_admin", "cs"]);
     const id = opt(fd, "id");
     const brandId = str(fd, "brandId");
+    if (!brandId) return fail("Pick a brand");
     await assertBrand(u, brandId);
     const name = str(fd, "name");
     if (!name) return fail("Name the project");
@@ -276,5 +278,47 @@ export async function completeProject(fd: FormData): Promise<Result> {
     await db.project.update({ where: { id: p.id }, data: { statusId: done.id } });
     await audit(db, u, "project.completed", "project", p.id);
     return ok("Project marked completed");
+  });
+}
+
+// ---------- bulk actions (task list) ----------
+/** ids come either as repeated "ids" fields or as ids_0, ids_1… from a flat button payload. */
+const idsFrom = (fd: FormData) => [...new Set([...all(fd, "ids"), ...[...fd.keys()].filter((k) => /^ids_\d+$/.test(k)).map((k) => String(fd.get(k)))])].filter(Boolean);
+/** Move several tasks at once; each one goes through the same rules as a single move, so some may be skipped. */
+export async function bulkMoveTasks(fd: FormData): Promise<Result> {
+  return guard(async () => {
+    const u = await actor(["admin", "group_admin", "cs"]);
+    const ids = idsFrom(fd), statusId = str(fd, "statusId"), note = opt(fd, "note");
+    if (!ids.length) return fail("Select at least one task");
+    if (!statusId) return fail("Pick a status");
+    let moved = 0; const skipped: string[] = [];
+    for (const id of ids) {
+      try { await moveTask(u, id, statusId, note); moved++; }
+      catch (e) { skipped.push(e instanceof Error ? e.message : "not allowed"); }
+    }
+    const to = await db.taskStatus.findUnique({ where: { id: statusId } });
+    return ok(`Moved ${moved} to ${to?.name ?? "status"}${skipped.length ? ` · ${skipped.length} skipped (${skipped[0]})` : ""}`);
+  });
+}
+
+/** Ask Sarthi to nudge the assignees of several tasks (same as the per-task button). */
+export async function bulkNudge(fd: FormData): Promise<Result> {
+  return guard(async () => {
+    const u = await actor(["admin", "group_admin", "cs"]);
+    const ids = idsFrom(fd);
+    if (!ids.length) return fail("Select at least one task");
+    let n = 0;
+    for (const id of ids) {
+      const t = await loadTask(id);
+      try { await assertTask(u, t); } catch { continue; }
+      if (t.status.isDone) continue;
+      await emit(db, "task.nudge", {
+        task: { id: t.id, name: t.name, deadline_label: fmtDue(t.deadlineAt) }, brand: t.brand.name, requested_by: fullName(u),
+        assignees: t.assignees.map((a) => ({ name: fullName(a.user), whatsapp: a.user.whatsappNo })), cs: { name: fullName(t.cs), whatsapp: t.cs.whatsappNo },
+      });
+      await audit(db, u, "task.nudge.requested", "task", t.id);
+      n++;
+    }
+    return ok(n ? `Sarthi will nudge people on ${n} task${n === 1 ? "" : "s"}` : "Nothing to nudge");
   });
 }

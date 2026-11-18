@@ -6,7 +6,7 @@ import { Ext, Field, LinkOrDash, PageHead, Pill, PlusIcon, Stats, Who } from "..
 import { AnnouncementForm, ConcernForm, InvoiceForm, OfflinePaymentForm, RequestForm, TaskForm } from "./forms";
 import { PriPill } from "./task-drawer";
 import { answerRequest, archiveAnnouncement, reassignConcern, replyConcern, setConcernStatus } from "@/app/actions/ops";
-import { remindInvoice, sendInvoiceAction, voidInvoice } from "@/app/actions/money";
+import { remindAllOverdue, remindInvoice, sendInvoiceAction, voidInvoice } from "@/app/actions/money";
 import { CONCERN_CLASS, CONCERN_LABEL, INVOICE_CLASS, INVOICE_LABEL, REQUEST_CLASS, REQUEST_LABEL } from "@/lib/status";
 
 const TA: React.CSSProperties = { width: "100%", background: "var(--bg)", border: "1px solid var(--line-strong)", borderRadius: 12, color: "var(--fg)", font: "inherit", padding: "10px 12px", minHeight: 70 };
@@ -179,7 +179,8 @@ export type InvVM = {
   trail: { text: string; when: string; by: string; red: boolean }[]; reminders: boolean;
 };
 
-export function MoneyView({ rows, stats, initial, openNew }: { rows: InvVM[]; stats: { billed: string; collected: string; due: string; overdue: string; month: string; live: boolean }; initial: string | null; openNew: boolean }) {
+export type AgingVM = { buckets: { label: string; count: number; amount: string; hot: boolean }[]; overdue: number };
+export function MoneyView({ rows, stats, aging, initial, openNew }: { rows: InvVM[]; stats: { billed: string; collected: string; due: string; overdue: string; month: string; live: boolean }; aging: AgingVM; initial: string | null; openNew: boolean }) {
   const { open } = useUi();
   const [f, setF] = useState("All");
   const [sel, setSel] = useState(initial);
@@ -192,6 +193,13 @@ export function MoneyView({ rows, stats, initial, openNew }: { rows: InvVM[]; st
       <PageHead eyebrow="Invoices & payments" title={<>{stats.month}, <em>on the books.</em></>} sub="Raise it here, the client pays through their portal on Razorpay, the ledger updates itself. Sarthi chases the late ones."
         actions={<button className="btn primary" onClick={() => open(<InvoiceForm />)}><PlusIcon />Raise invoice</button>} />
       <Stats items={[[stats.billed, `On the book · ${stats.month}`], [stats.collected, "Collected", "gold"], [stats.due, "Due"], [stats.overdue, "Overdue", "hot"], [stats.live ? "T+2" : "Test mode", stats.live ? "Razorpay settlement" : "Razorpay · mock checkout"]]} />
+      <div className="aging">
+        {aging.buckets.map((b) => <div key={b.label} className={`bkt${b.hot && b.count ? " hot" : ""}`}><b className="num">{b.amount}</b><span>{b.label}</span><small>{b.count} invoice{b.count === 1 ? "" : "s"}</small></div>)}
+        <div className="bkt" style={{ alignContent: "center", justifyItems: "start" }}>
+          <ActionButton action={remindAllOverdue} className="btn primary" disabled={!aging.overdue} confirm={`Send a Sarthi reminder for all ${aging.overdue} overdue invoices?`}>Remind all overdue · {aging.overdue}</ActionButton>
+          <small>One WhatsApp reminder per overdue invoice, logged on each trail.</small>
+        </div>
+      </div>
       <div className="bar"><Chips value={f} onChange={setF} items={["All", "Overdue", "Due", "Paid", "Draft", "Void"].map((k) => [k, k === "All" ? rows.length : rows.filter((x) => label(x.status) === k).length])} /></div>
       <div className="split">
         <div className="scroll"><table className="tbl"><thead><tr><th>Invoice</th><th>Brand</th><th className="r">Amount</th><th>Issued</th><th>Due</th><th>Status</th></tr></thead>

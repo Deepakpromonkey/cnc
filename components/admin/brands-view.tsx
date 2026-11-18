@@ -2,7 +2,7 @@
 import { useLookups } from "../lookups";
 import { useMemo, useState } from "react";
 import { ActionButton, Chips, Search, useLiveDrawer, useUi } from "../kit";
-import { Field, Mini, PageHead, Pill, PlusIcon, Ring, Stats, Tags, Who, ini, LinkOrDash } from "../ui";
+import { Field, PageHead, Pill, PlusIcon, Ring, Stats, Tags, Who, ini, LinkOrDash } from "../ui";
 import { BrandForm, ClientLoginForm, InvoiceForm, ProjectForm, TaskForm } from "./forms";
 import { PriPill, ProjectDrawer, StatusPill, TaskDrawer, type ProjectVM } from "./task-drawer";
 import { impersonate } from "@/app/actions/common";
@@ -57,20 +57,19 @@ export function BrandsView({ brands, tasks, projects, initial }: { brands: Brand
       </div>
       <div className="split">
         <div className="scroll">
-          <table className="tbl"><thead><tr><th>Brand</th><th>CS</th><th>Engagement</th><th className="r">Open</th><th className="r">Awaiting client</th><th>Health</th><th>Invoice</th><th>Last activity</th></tr></thead>
+          <table className="tbl"><thead><tr><th>Brand · engagement</th><th>CS</th><th className="r">Open</th><th className="r hide-lg">Waiting</th><th>Health</th><th>Invoice</th><th className="hide-md">Last activity</th></tr></thead>
             <tbody>
               {rows.length ? rows.map((x) => (
                 <tr key={x.id} className={x.id === b?.id ? "sel" : ""} onClick={() => { setSel(x.id); setTab("profile"); }}>
-                  <td className="n"><span className="bar" style={{ gap: 10, flexWrap: "nowrap" }}><span className="blogo">{x.logo ? <img src={x.logo} alt="" /> : ini(x.name)}</span><span>{x.name}<small>{x.company}</small></span></span></td>
-                  <td>{x.cs[0] ? <Who n={x.cs[0].name} /> : "—"}{x.cs.length > 1 ? <small style={{ color: "var(--muted)" }}> +{x.cs.length - 1}</small> : null}</td>
-                  <td>{x.type}</td>
-                  <td className="r big">{x.open}</td>
-                  <td className="r">{x.waiting ? <b>{x.waiting}</b> : "—"}</td>
-                  <td><Mini v={x.health} /><b className="num">{x.health}</b></td>
-                  <td>{x.invHot ? <span style={{ color: "var(--brand-ink)", fontWeight: 700 }}>{x.inv}</span> : x.inv}</td>
-                  <td style={{ color: "var(--muted)" }}>{x.last}</td>
+                  <td className="n"><span className="bar" style={{ gap: 10, flexWrap: "nowrap" }}><span className="blogo">{x.logo ? <img src={x.logo} alt="" /> : ini(x.name)}</span><span style={{ minWidth: 0 }}><span style={{ whiteSpace: "nowrap" }}>{x.name}</span><small style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 150 }} title={x.company}>{x.type}{x.company && x.company !== x.name ? ` · ${x.company}` : ""}</small></span></span></td>
+                  <td className="nowrap">{x.cs[0] ? <Who n={x.cs[0].name} /> : "—"}{x.cs.length > 1 ? <small style={{ color: "var(--muted)" }}> +{x.cs.length - 1}</small> : null}</td>
+                  <td className="r big">{x.open}{x.waiting ? <small className="hide-lg-inline" style={{ display: "block", fontSize: 10, color: "var(--muted)", fontFamily: "Manrope,sans-serif" }}>{x.waiting} waiting</small> : null}</td>
+                  <td className="r hide-lg">{x.waiting ? <b>{x.waiting}</b> : "—"}</td>
+                  <td className="nowrap"><span className="mini" style={{ width: 48 }}><i style={{ width: `${x.health}%` }} /></span><b className="num">{x.health}</b></td>
+                  <td className="nowrap">{x.invHot ? <span style={{ color: "var(--brand-ink)", fontWeight: 700 }}>{x.inv}</span> : x.inv}</td>
+                  <td className="nowrap hide-md" style={{ color: "var(--muted)" }}>{x.last}</td>
                 </tr>
-              )) : <tr><td colSpan={8} className="empty">No brands match.</td></tr>}
+              )) : <tr><td colSpan={7} className="empty">No brands match.</td></tr>}
             </tbody></table>
         </div>
         {b ? (

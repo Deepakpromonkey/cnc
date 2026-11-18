@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { ActionButton, ActionForm, StarInput, UploadMany, useUi } from "../kit";
+import { ActionButton, ActionForm, MentionInput, StarInput, UploadMany, useUi } from "../kit";
 import { useLookups } from "../lookups";
 import { Ext, Field, Pill, Stars, Who } from "../ui";
 import { FlagForm, TaskForm, ProjectForm, type ProjectInit } from "./forms";
@@ -28,14 +28,16 @@ function Attachments({ list }: { list: TaskVM["attachments"] }) {
 }
 
 function Comments({ list, action, id, placeholder }: { list: { who: string; when: string; body: string }[]; action: (fd: FormData) => Promise<import("@/lib/result").Result>; id: string; placeholder: string }) {
+  const L = useLookups();
+  const people = [...L.cs, ...L.employees].map((p) => ({ id: p.id, name: p.name }));
   return (
     <div>
       <h4 className="eyebrow" style={{ marginBottom: 8 }}>Comments · {list.length}</h4>
       {list.length ? <div className="chat">{list.map((c, i) => <div key={i} className="bubble q" style={{ maxWidth: "100%" }}><small>{c.who} · {c.when}</small>{c.body}</div>)}</div>
         : <p style={{ margin: "0 0 8px", fontSize: 13, color: "var(--muted)" }}>No comments yet.</p>}
       <ActionForm action={action} keepOpen resetOnSuccess className="">
-        <input type="hidden" name="id" value={id} />
-        <div className="ask" style={{ marginTop: 10, borderRadius: 14 }}><input name="body" placeholder={placeholder} /><button type="submit">Post</button></div>
+        <input autoComplete="off" type="hidden" name="id" value={id} />
+        <div className="ask" style={{ marginTop: 10, borderRadius: 14 }}><MentionInput placeholder={placeholder} people={people} /><button type="submit">Post</button></div>
       </ActionForm>
     </div>
   );
@@ -71,14 +73,14 @@ export function TaskDrawer({ t, flag }: { t: TaskVM; flag?: boolean }) {
         <h4>Deliverables & updates</h4>
         <div style={{ marginTop: 8, display: "grid", gap: 8 }}><Attachments list={t.attachments} /></div>
         <ActionForm action={addDeliverables} keepOpen className="" resetOnSuccess>
-          <input type="hidden" name="id" value={t.id} />
+          <input autoComplete="off" type="hidden" name="id" value={t.id} />
           <div style={{ marginTop: 10 }}><UploadMany name="files" hint="Creatives, exports, screenshots · images upload here" linkName="link" /></div>
           <button className="btn" type="submit" style={{ marginTop: 8 }}>Add to task</button>
         </ActionForm>
       </div>
 
       <ActionForm action={moveTaskAction} keepOpen className="">
-        <input type="hidden" name="id" value={t.id} />
+        <input autoComplete="off" type="hidden" name="id" value={t.id} />
         <h4>Move to</h4>
         <select name="statusId" style={{ marginTop: 8 }} value={to} onChange={(e) => setTo(e.target.value)}>
           {L.statuses.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -110,7 +112,7 @@ export function TaskDrawer({ t, flag }: { t: TaskVM; flag?: boolean }) {
 
       {t.status.isDone || t.status.isReview || t.status.isClientGate ? (
         <ActionForm action={rateTaskCs} keepOpen className="">
-          <input type="hidden" name="id" value={t.id} />
+          <input autoComplete="off" type="hidden" name="id" value={t.id} />
           <h4>CS rating (feeds the score)</h4>
           <div className="bar" style={{ marginTop: 8, gap: 10 }}><StarInput name="stars" initial={t.csRating ?? 0} /><button className="btn" type="submit">Save rating</button></div>
         </ActionForm>
@@ -124,6 +126,8 @@ export function TaskDrawer({ t, flag }: { t: TaskVM; flag?: boolean }) {
       <Comments list={t.comments} action={commentTask} id={t.id} placeholder="Comment · @ to mention" />
       <div className="actions">
         <button className="btn primary" onClick={() => open(<TaskForm task={t} />)}>Edit task</button>
+        <button className="btn" onClick={() => open(<TaskForm task={t} duplicate />)} title="Same brand, project, people and brief — new name and deadline">Duplicate</button>
+        <a className="btn" href={`/api/tasks/${t.id}/ics`} download title="Download a calendar event for the deadline">Add to calendar</a>
         <ActionButton action={nudgeAssignee} values={{ id: t.id }}>Ask Sarthi to nudge {t.assignees[0]?.name.split(" ")[0]}</ActionButton>
         {flag && t.assignees[0] ? <button className="btn" onClick={() => open(<FlagForm personId={t.assignees[0].id} employeesOnly />)}>Flag assignee</button> : null}
       </div>

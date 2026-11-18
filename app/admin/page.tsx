@@ -8,6 +8,7 @@ import { fmtDate, fmtDue, fmtTime, fmtWhen, greeting, istMonthDate, istParts, is
 import { inr, lakh } from "@/lib/money";
 import { FLAG_CLASS, INVOICE_CLASS, INVOICE_LABEL, REQUEST_CLASS, REQUEST_LABEL, toneClass } from "@/lib/status";
 import { Flag, Pill, Ring } from "@/components/ui";
+import { CopyText } from "@/components/kit";
 
 export const metadata = { title: "Today" };
 
@@ -82,6 +83,55 @@ export default async function Today() {
   const nudges = outboxToday.filter((e) => /nudge|late/.test(e.event)).length;
   const qa = lastQa?.after as { question?: string; answer?: string } | null;
   const tasksBrewing = openCount;
+  // One-tap summary for WhatsApp / mail: the same numbers as the hero, in plain text.
+  const summary = [
+    `☕ CNC morning brew · ${fmtDate(now)}`,
+    `${tasksBrewing} open tasks across ${openBrands.length} brands`,
+    `• Overdue: ${late.length}${late.length ? "\n" + late.slice(0, 6).map((t) => { const [n, unit] = latenessParts(t.deadlineAt, now); return `   – ${t.name} · ${t.brand.name} · ${t.assignees[0] ? t.assignees[0].user.firstName : "unassigned"} · ${n} ${unit} late`; }).join("\n") + (late.length > 6 ? `\n   – +${late.length - 6} more` : "") : ""}`,
+    `• Due today: ${dueToday.length}`,
+    `• Awaiting client: ${gate}`,
+    `• New requests: ${newReqs.length}`,
+    ...(ga ? [] : [`• Outstanding: ${lakh(outstandingSum)} (${lakh(overdueSum)} overdue)`]),
+    ...(concerns ? [`• Concerns waiting: ${concerns}`] : []),
+  ].join("\n");
+
+  // Birthdays in the next 14 days, yesterday's EOD lines and the last 24 h of studio activity.
+  const p0 = istParts(now);
+  const todayUtc = Date.UTC(p0.y, p0.m, p0.d);
+  const bdays = staff.filter((s) => s.dob).map((s) => {
+    const d = s.dob!; let next = Date.UTC(p0.y, d.getUTCMonth(), d.getUTCDate());
+    if (next < todayUtc) next = Date.UTC(p0.y + 1, d.getUTCMonth(), d.getUTCDate());
+    return { s, inDays: Math.round((next - todayUtc) / DAY_MS), when: new Date(next) };
+  }).filter((b) => b.inDays <= 14).sort((a, b) => a.inDays - b.inDays);
+  const yesterdayUtc = new Date(todayUtc - DAY_MS);
+  const [yEod, pulseRows] = await Promise.all([
+    db.eodLog.findMany({ where: { date: yesterdayUtc, ...uTeam }, include: { user: true, task: { include: { brand: true } } }, orderBy: [{ userId: "asc" }, { createdAt: "asc" }] }),
+    db.auditLog.findMany({
+      where: { at: { gte: new Date(now.getTime() - DAY_MS) }, action: { notIn: ["auth.login", "auth.logout", "agent.answer", "invoice.viewed", "invoice.pdf.downloaded", "eod.saved", "user.profile.updated"] }, ...(team ? { actorUserId: { in: team } } : {}) },
+      orderBy: { at: "desc" }, take: 14,
+    }),
+  ]);
+  const VERB: Record<string, string> = {
+    "task.created": "created", "task.updated": "edited", "task.status.changed": "moved", "task.comment.added": "commented on", "task.attachment.added": "shared work on", "task.rated.cs": "rated", "task.rated.client": "rated (client)",
+    "task.paused": "paused", "task.nudge.requested": "asked Sarthi to nudge on", "task.client.reminded": "reminded the client on", "project.created": "created project", "project.completed": "completed project", "project.comment.added": "commented on project",
+    "invoice.created": "raised", "invoice.sent": "sent", "invoice.payment": "recorded a payment on", "invoice.reminded": "chased", "invoice.voided": "voided", "invoice.overdue": "marked overdue",
+    "request.created": "raised request", "request.converted": "converted request", "concern.created": "raised a concern", "concern.replied": "replied to a concern", "concern.reassigned": "reassigned a concern", "flag.given": "gave a flag",
+    "leave.requested": "applied for leave", "leave.marked": "marked leave", "user.invited": "added a user", "user.updated": "updated a user", "user.reset.sent": "sent a password reset", "status.created": "added a status", "status.updated": "edited a status",
+    "logout.reasons": "left sign-out reasons", "digest.override": "changed a client digest", "company.updated": "updated company settings", "scoring.weights.updated": "changed scoring rules", "brand.preferences.changed": "changed brand preferences", "client.details.updated": "updated brand details",
+  };
+  const pulseTaskIds = pulseRows.filter((r) => r.entityType === "task" && r.entityId).map((r) => r.entityId!);
+  const pulseInvIds = pulseRows.filter((r) => r.entityType === "invoice" && r.entityId).map((r) => r.entityId!);
+  const [pulseTasks, pulseInvs, pulseActors] = await Promise.all([
+    pulseTaskIds.length ? db.task.findMany({ where: { id: { in: pulseTaskIds } }, select: { id: true, name: true, brand: { select: { name: true } } } }) : [],
+    pulseInvIds.length ? db.invoice.findMany({ where: { id: { in: pulseInvIds } }, select: { id: true, number: true, brand: { select: { name: true } } } }) : [],
+    db.user.findMany({ where: { id: { in: pulseRows.map((r) => r.actorUserId!).filter(Boolean) } }, select: { id: true, firstName: true, lastName: true, role: true } }),
+  ]);
+  const pulse = pulseRows.map((r) => {
+    const who = pulseActors.find((a) => a.id === r.actorUserId);
+    const task = pulseTasks.find((t) => t.id === r.entityId), inv = pulseInvs.find((i) => i.id === r.entityId);
+    const what = task ? `${task.name} · ${task.brand.name}` : inv ? `INV-${inv.number} · ${inv.brand.name}` : (r.after as { name?: string; subject?: string } | null)?.name ?? (r.after as { subject?: string } | null)?.subject ?? "";
+    return { id: r.id, at: r.at, who: who ? (who.role === "client" ? `${who.firstName} (client)` : who.firstName) : r.actorKind === "system" ? "Sarthi / system" : "Someone", verb: VERB[r.action] ?? r.action.replace(/\./g, " "), what, link: task ? `/admin/tasks?task=${task.id}` : inv ? `/admin/money?inv=${inv.id}` : "" };
+  });
 
   return (
     <section className="view on">
@@ -94,6 +144,7 @@ export default async function Today() {
             {nudges ? <> Sarthi has queued {nudges} nudge{nudges === 1 ? "" : "s"} and {digestBrands} client digests go out at 9:00.</> : <> {digestBrands} client digests go out with Sarthi at 9:00.</>}
             {concerns ? <> <Link href="/admin/concerns" style={{ color: "var(--brand-ink)", fontWeight: 600 }}>{concerns === 1 ? "One concern" : `${WORDS[Math.min(concerns, 10)].replace(" things", "").replace(" thing", "")} concerns`}</Link> from the team {concerns === 1 ? "is" : "are"} waiting on a reply.</> : null}
           </p>
+          <div className="copybtn"><CopyText text={summary}>Copy morning summary for WhatsApp</CopyText></div>
         </div>
         <div className="pour">
           <Link href="/admin/tasks?f=Overdue" className={`tile${late.length ? " hot" : ""}`}><div className={`v num${late.length ? " hot" : ""}`}>{late.length}</div><div className="l">Overdue</div><div className="d">{oldestLate ? `oldest ${oldestLate[0]} ${oldestLate[1]}` : "all on time"}</div></Link>
@@ -115,7 +166,10 @@ export default async function Today() {
               return (
                 <Link key={t.id} href={`/admin/tasks?task=${t.id}`} className="item">
                   <div className="late num">{n}<small>{unit}</small></div>
-                  <div className="t">{t.name}<span><b>{t.brand.name}</b> · {a ? <span className="who"><i>{a.firstName[0]}{a.lastName[0] ?? ""}</i>{name(a)}</span> : null} · {rej?.note ? <>rejected by {rej.by?.firstName} — “{rej.note}”</> : <>CS {t.cs.firstName}</>}</span></div>
+                  <div className="t">{t.name}
+                    <span className="meta"><b>{t.brand.name}</b>{a ? <><i className="dot" /><span className="who"><i>{a.firstName[0]}{a.lastName[0] ?? ""}</i>{name(a)}</span></> : null}<i className="dot" /><span>CS {t.cs.firstName}</span></span>
+                    {rej?.note ? <span className="note">Rejected by {rej.by?.firstName ?? "CS"} — “{rej.note}”</span> : null}
+                  </div>
                   <div className="r"><Pill cls={toneClass(t.status.tone)}>{t.status.name}</Pill><time>due {fmtDue(t.deadlineAt, now)}</time></div>
                 </Link>
               );
@@ -240,6 +294,47 @@ export default async function Today() {
             <Link key={s.id} href="/admin/tasks" className={`stage${s.isRejected ? " hot" : s.isDone ? " done" : ""}`}><b className="num">{flowCounts[i]}</b><span>{s.name}{s.isDone ? ` · ${monthName(now)}` : ""}</span></Link>
           ))}
         </div>
+      </section>
+
+      <div className="row r-3-2">
+        <section className="card">
+          <div className="card-h"><div><div className="eyebrow">09 — Yesterday</div><h2>What <em>moved.</em></h2></div><Link className="link" href="/admin/attendance">Attendance →</Link></div>
+          {yEod.length ? (
+            <div className="list">
+              {Object.entries(yEod.reduce<Record<string, typeof yEod>>((acc, e) => { (acc[e.userId] ??= []).push(e); return acc; }, {})).map(([uid, lines]) => (
+                <div key={uid} className="item" style={{ gridTemplateColumns: "minmax(0,1fr)", padding: "10px 0" }}>
+                  <div className="t">{name(lines[0].user)}<span className="meta"><b>{lines.length} line{lines.length === 1 ? "" : "s"}</b></span>
+                    {lines.slice(0, 4).map((e) => <span key={e.id} style={{ marginTop: 3 }}><Link href={`/admin/tasks?task=${e.taskId}`} style={{ color: "var(--fg-2)" }}>{e.task.name}</Link> · {e.task.brand.name} — {e.remark}</span>)}
+                    {lines.length > 4 ? <span style={{ color: "var(--faint)" }}>+{lines.length - 4} more</span> : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : <div className="empty">No EOD lines were logged yesterday.</div>}
+        </section>
+        <section className="card">
+          <div className="card-h"><div><div className="eyebrow">10 — Cake day</div><h2>Birthdays <em>soon.</em></h2></div><span className="muted small">next 14 days</span></div>
+          {bdays.length ? (
+            <div className="bday">
+              {bdays.map(({ s, inDays, when }) => (
+                <div key={s.id} className={inDays === 0 ? "today" : ""}>
+                  <span className="d num">{when.getUTCDate()}<small>{monthName(when)}</small></span>
+                  <span><b>{name(s)}</b><br /><small className="muted">{s.designation ?? ""}</small></span>
+                  <Pill cls={inDays === 0 ? "gold" : "dim"}>{inDays === 0 ? "Today 🎂" : inDays === 1 ? "Tomorrow" : `in ${inDays} days`}</Pill>
+                </div>
+              ))}
+            </div>
+          ) : <div className="empty">No birthdays in the next two weeks. Add dates of birth in Users &amp; access to see them here.</div>}
+        </section>
+      </div>
+
+      <section className="card">
+        <div className="card-h"><div><div className="eyebrow">11 — Studio pulse</div><h2>Last 24 hours, <em>who did what.</em></h2></div><span className="muted small">from the audit log · logins and reads hidden</span></div>
+        {pulse.length ? (
+          <div className="pulse">
+            {pulse.map((p) => <div key={p.id}><time>{fmtTime(p.at)}</time><span><b>{p.who}</b> {p.verb}{p.what ? <> {p.link ? <Link href={p.link} style={{ color: "var(--gold)" }}>{p.what}</Link> : p.what}</> : null}</span></div>)}
+          </div>
+        ) : <div className="empty">Quiet day so far.</div>}
       </section>
     </section>
   );
