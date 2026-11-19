@@ -142,7 +142,7 @@ export function ApprovalsView({ pieces, projects, avgResp, initial }: { pieces: 
       <div style={{ display: "grid", gap: 14 }}>
         {q.length ? q.map((t) => (
           <div className="appcard" key={t.id}>
-            <div className="card-h"><div><div className="eyebrow">{t.project} · shared {t.sharedOn}</div><h2 style={{ fontSize: 22, fontFamily: "Fraunces,Georgia,serif", fontWeight: 300 }}>{t.name}</h2></div><Pill cls="brand">Your approval</Pill></div>
+            <div className="card-h"><div><div className="eyebrow">{t.project} · shared {t.sharedOn}</div><h2 style={{ fontSize: 22, fontFamily: "var(--font-display)", fontWeight: 700 }}>{t.name}</h2></div><Pill cls="brand">Your approval</Pill></div>
             {t.desc ? <p style={{ margin: 0, fontSize: 13, color: "var(--fg-2)" }}>{t.desc}</p> : null}
             <Previews files={t.files} fill />
             <Decide id={t.id} title="" />
@@ -415,7 +415,7 @@ export function NoticesView({ list }: { list: NoticeVM[] }) {
             <div className="late" style={{ color: a.holiday ? "var(--gold)" : "var(--brand-ink)", fontSize: 26 }}>{a.day}<small>{a.mon}</small></div>
             <div>
               <div className="bar" style={{ gap: 8, marginBottom: 4 }}>{a.holiday ? <Pill cls="gold">Studio closed</Pill> : <Pill cls="brand">Notice</Pill>}</div>
-              <h2 style={{ fontFamily: "Fraunces,Georgia,serif", fontSize: 20, fontWeight: 400 }}>{a.subject}</h2>
+              <h2 style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700 }}>{a.subject}</h2>
               {a.msg ? <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--fg-2)" }}>{a.msg}</p> : null}
               {a.image ? <img src={a.image} alt="" style={{ marginTop: 10, borderRadius: 14, maxHeight: 280 }} /> : null}
             </div>

@@ -106,7 +106,7 @@ export function TeamView({ people, cs, rules, praise, visible, lateCount, initia
         {p ? (
           <div className="card">
             <div className="card-h"><div><div className="eyebrow">{p.dept}{p.rank ? ` · #${p.rank} in dept` : ""}</div><h2>{p.name}</h2></div>
-              <b className="num" style={{ fontFamily: "Fraunces,Georgia,serif", fontSize: 44, fontWeight: 300 }}>{p.score}</b></div>
+              <b className="num" style={{ fontFamily: "var(--font-display)", fontSize: 36, fontWeight: 700 }}>{p.score}</b></div>
             <div className="team">{p.breakdown.map((q) => (
               <div key={q.key} className="member" style={{ gridTemplateColumns: "minmax(0,1fr) 90px 44px" }}>
                 <div className="n" style={{ fontSize: 12 }}>{q.label}<span>weight {q.weight} · {q.raw}</span></div>

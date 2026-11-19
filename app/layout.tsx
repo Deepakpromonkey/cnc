@@ -18,10 +18,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en-IN" data-theme={theme}>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Manrope:wght@400;500;600;700&display=swap" />
+        <link rel="preload" href="/fonts/visby/VisbyCF-Regular.otf" as="font" type="font/otf" crossOrigin="" />
+        <link rel="preload" href="/fonts/visby/VisbyCF-Bold.otf" as="font" type="font/otf" crossOrigin="" />
       </head>
       <body>{children}</body>
     </html>
