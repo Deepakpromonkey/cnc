@@ -268,7 +268,7 @@ export function NoticesView({ notices }: { notices: Notice[] }) {
           <div className="late" style={{ color: n.type === "holiday" ? "var(--gold)" : "var(--brand-ink)", fontSize: 26 }}>{n.day}<small>{n.mon}</small></div>
           <div style={{ display: "grid", gap: 6 }}>
             <div className="bar" style={{ gap: 8 }}>{n.type === "holiday" ? <Pill cls="gold">Holiday · studio closed</Pill> : <Pill cls="brand">Notice</Pill>}<span className="muted small">{n.by}</span></div>
-            <h2 style={{ fontFamily: "Fraunces,Georgia,serif", fontSize: 20, fontWeight: 400 }}>{n.subject}</h2>
+            <h2 style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700 }}>{n.subject}</h2>
             {n.message ? <p style={{ margin: 0, fontSize: 13, color: "var(--fg-2)" }}>{n.message}</p> : null}
             {n.image ? <img src={n.image} alt="" style={{ maxWidth: 420, borderRadius: 14 }} /> : null}
           </div>
@@ -291,7 +291,7 @@ export function ScoreView({ s, dept, month }: { s: ScoreC; dept: string; month: 
         <div className="row r-2-3">
           <section className="card">
             <div className="eyebrow">This month</div>
-            <b className="num" style={{ fontFamily: "Fraunces,Georgia,serif", fontSize: 96, fontWeight: 300, lineHeight: 1 }}>{s.score}</b>
+            <b className="num" style={{ fontFamily: "var(--font-display)", fontSize: 72, fontWeight: 700, lineHeight: 1 }}>{s.score}</b>
             <div className="bar" style={{ gap: 8 }}>
               {s.rank ? <Pill cls="gold">#{s.rank} of {s.of} · {dept}</Pill> : null}
               {delta !== null ? <Pill cls={delta >= 0 ? "gold" : "brand"}>{delta >= 0 ? "▲" : "▼"} {Math.abs(delta)} vs last month ({s.last})</Pill> : null}

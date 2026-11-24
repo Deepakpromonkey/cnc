@@ -98,7 +98,7 @@ export function ReviewView({ queue, stats }: { queue: TaskVM[]; stats: { avg: st
             <input autoComplete="off" type="hidden" name="id" value={t.id} />
             <div className="card-h">
               <div><div className="eyebrow">{t.brand} · {t.project} · submitted {sub?.when ?? "—"} by {sub?.by ?? t.assignees[0]?.name}</div>
-                <h2 style={{ fontSize: 22, fontFamily: "Fraunces,Georgia,serif", fontWeight: 300, cursor: "pointer" }} onClick={() => openTask(t)}>{t.name}</h2></div>
+                <h2 style={{ fontSize: 20, fontFamily: "var(--font-display)", fontWeight: 700, cursor: "pointer" }} onClick={() => openTask(t)}>{t.name}</h2></div>
               <div className="bar" style={{ gap: 6 }}>{t.isLate ? <Pill cls="brand">{t.late}</Pill> : <Pill cls="dim">due {t.due}</Pill>}{t.share ? <Pill cls="gold">client sees it</Pill> : <Pill cls="dim">internal</Pill>}</div>
             </div>
             {imgs.length ? <div className="prev">{imgs.map((a) => <a key={a.id} href={a.url} target="_blank" rel="noopener"><img src={a.thumb ?? a.url} alt="" /></a>)}</div> : null}
